@@ -273,7 +273,7 @@ ${style.examples.map((ex) => `- ${ex}`).join('\n')}
 Return ONLY the tagline, nothing else.`;
 
     const response = await callOpenRouter(
-      OPENROUTER_MODELS.DEEPSEEK_V3,
+      OPENROUTER_MODELS.DEEPSEEK_CHAT,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

@@ -5,15 +5,16 @@
 
 /**
  * OpenRouter model identifiers
+ * All IDs verified on OpenRouter platform as of Oct 2025
  */
 export const OPENROUTER_MODELS = {
   // Stage 1: Template Generation - Best for expansion and semantic reasoning
-  CLAUDE_SONNET_4: 'anthropic/claude-3.7-sonnet',
-  DEEPSEEK_V3: 'deepseek/deepseek-chat',
+  CLAUDE_SONNET: 'anthropic/claude-3.7-sonnet',
+  DEEPSEEK_CHAT: 'deepseek/deepseek-chat',
 
   // Stage 2: SVG Code Generation - Optimized for code generation
-  DEEPSEEK_CODER: 'deepseek/deepseek-coder',
-  QWEN_CODER: 'qwen/qwq-32b-preview',
+  QWEN_CODER: 'qwen/qwen-2.5-coder-32b-instruct',
+  DEEPSEEK_V3: 'deepseek/deepseek-chat',
 
   // Stage 3: Review and Optimization
   CLAUDE_OPUS: 'anthropic/claude-3-opus',
@@ -176,7 +177,7 @@ OBJECTS: [component breakdown]
 LAYOUT: [detailed specifications]`;
 
   const response = await callOpenRouter(
-    OPENROUTER_MODELS.CLAUDE_SONNET_4,
+    OPENROUTER_MODELS.CLAUDE_SONNET,
     [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -245,7 +246,7 @@ Focus on geometric simplicity and visual balance.
 Return ONLY the SVG code.`;
 
   const response = await callOpenRouter(
-    OPENROUTER_MODELS.DEEPSEEK_CODER,
+    OPENROUTER_MODELS.QWEN_CODER,
     [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -301,7 +302,7 @@ Identify issues and return IMPROVED SVG code:
 Return ONLY the improved SVG code.`;
 
   const response = await callOpenRouter(
-    OPENROUTER_MODELS.CLAUDE_SONNET_4,
+    OPENROUTER_MODELS.CLAUDE_SONNET,
     [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -349,7 +350,7 @@ Provide your score and feedback.`;
 
   try {
     const response = await callOpenRouter(
-      OPENROUTER_MODELS.DEEPSEEK_V3,
+      OPENROUTER_MODELS.DEEPSEEK_CHAT,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
