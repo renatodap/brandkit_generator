@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { brandKitInputSchema } from '@/lib/validations';
 import { generateLogo, generateColorPalette, getFontPairing, generateTagline } from '@/lib/api';
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import type { BrandKit } from '@/types';
 
 /**
@@ -9,6 +11,24 @@ import type { BrandKit } from '@/types';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Check rate limit
+    const ip = getClientIp(request);
+    const rateLimitResult = await checkRateLimit(ip);
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        { error: rateLimitResult.error },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit?.toString() || '10',
+            'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '0',
+            'X-RateLimit-Reset': rateLimitResult.reset?.toString() || '',
+          },
+        }
+      );
+    }
+
     // Parse and validate request body
     const body = await request.json();
     const validationResult = brandKitInputSchema.safeParse(body);
@@ -128,6 +148,16 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('❌ Error in generate-brand-kit API:', error);
+
+    // Log to Sentry
+    Sentry.captureException(error, {
+      tags: {
+        api_route: 'generate-brand-kit',
+      },
+      extra: {
+        ip: getClientIp(request),
+      },
+    });
 
     return NextResponse.json(
       {

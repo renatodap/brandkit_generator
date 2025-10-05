@@ -109,5 +109,5 @@ export function delay(ms: number): Promise<void> {
  * @returns True if valid hex color
  */
 export function isValidHexColor(color: string): boolean {
-  return /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.test(color);
+  return /^#?([a-f\d]{3}|[a-f\d]{6})$/i.test(color);
 }
