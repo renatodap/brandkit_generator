@@ -116,6 +116,7 @@ export interface ColorPaletteParams {
 export interface FontPairingParams {
   industry: Industry;
   businessName: string;
+  description?: string;
 }
 
 /**

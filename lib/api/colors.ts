@@ -1,4 +1,5 @@
-import type { ColorPalette, ColorPaletteParams, Industry } from '@/types';
+import type { ColorPalette, ColorPaletteParams } from '@/types';
+import { extractColorPreferences } from './groq';
 
 /**
  * Color theory utilities
@@ -132,36 +133,100 @@ class ColorUtils {
 }
 
 /**
- * Industry-specific base colors
- * These are carefully selected primary colors that work well for each industry
+ * Color Psychology Library - 2025 Enhanced
+ * Maps emotional keywords to color palettes with scientific backing
  */
-const industryBaseColors: Record<Industry, string> = {
-  tech: '#0066FF', // Vibrant blue - innovation, trust
-  food: '#FF6B35', // Warm orange - appetite, energy
-  fashion: '#E91E63', // Bold pink - style, creativity
-  health: '#00A86B', // Medical green - health, growth
-  creative: '#9C27B0', // Purple - creativity, imagination
-  finance: '#1565C0', // Deep blue - trust, stability
-  education: '#FF9800', // Orange - energy, enthusiasm
-  other: '#2196F3', // Balanced blue - universal appeal
+const colorPsychology = {
+  // Trust & Professionalism
+  trust: ['#0066FF', '#1E40AF', '#3B82F6', '#2563EB'],
+  professional: ['#1F2937', '#374151', '#4B5563', '#6B7280'],
+  stable: ['#1565C0', '#0D47A1', '#1976D2', '#2196F3'],
+
+  // Energy & Dynamism
+  energy: ['#FF6B35', '#F97316', '#EA580C', '#FF5722'],
+  dynamic: ['#EF4444', '#DC2626', '#B91C1C', '#991B1B'],
+  vibrant: ['#F59E0B', '#FBBF24', '#FCD34D', '#FDE047'],
+
+  // Growth & Nature
+  growth: ['#10B981', '#059669', '#047857', '#065F46'],
+  organic: ['#92400E', '#78350F', '#8B7355', '#A0826D'],
+  fresh: ['#22C55E', '#16A34A', '#15803D', '#166534'],
+
+  // Luxury & Elegance
+  luxury: ['#7C3AED', '#6D28D9', '#5B21B6', '#4C1D95'],
+  elegant: ['#EC4899', '#DB2777', '#BE185D', '#9F1239'],
+  premium: ['#8B5CF6', '#7C3AED', '#6D28D9', '#5B21B6'],
+
+  // Calm & Trust
+  calm: ['#06B6D4', '#0891B2', '#0E7490', '#155E75'],
+  wellness: ['#14B8A6', '#0D9488', '#0F766E', '#115E59'],
+  peaceful: ['#A5B4FC', '#818CF8', '#6366F1', '#4F46E5'],
+
+  // Creative & Playful
+  creative: ['#EC4899', '#F472B6', '#F9A8D4', '#FBCFE8'],
+  playful: ['#FB923C', '#FDBA74', '#FED7AA', '#FFEDD5'],
+  artistic: ['#C026D3', '#D946EF', '#E879F9', '#F0ABFC'],
 };
 
 /**
- * Industry-specific color scheme strategies
+ * 2025 Color Trends - Research-backed modern palettes
  */
-const industryColorStrategies: Record<Industry, 'complementary' | 'analogous' | 'triadic'> = {
-  tech: 'triadic',
-  food: 'analogous',
-  fashion: 'complementary',
-  health: 'analogous',
-  creative: 'triadic',
-  finance: 'analogous',
-  education: 'complementary',
-  other: 'analogous',
+const colorTrends2025 = {
+  // Earthy/Organic (36% of consumers expect this in 2025)
+  earthy: {
+    primary: ['#92400E', '#78350F', '#6B4423', '#8B7355'],
+    sage: ['#84A98C', '#52796F', '#6A994E', '#A7C957'],
+    terracotta: ['#D4A574', '#C08552', '#BC6C25', '#DDA15E'],
+  },
+  // Futuristic/AI-inspired (metallic, iridescent)
+  futuristic: {
+    metallic: ['#E0E7FF', '#C7D2FE', '#A5B4FC', '#818CF8'],
+    iridescent: ['#DDD6FE', '#C4B5FD', '#A78BFA', '#8B5CF6'],
+    neon: ['#34D399', '#10B981', '#06B6D4', '#3B82F6'],
+  },
+  // Classic/Timeless
+  classic: {
+    navy: ['#1E3A8A', '#1E40AF', '#1D4ED8', '#2563EB'],
+    burgundy: ['#7C2D12', '#991B1B', '#B91C1C', '#DC2626'],
+    forest: ['#14532D', '#166534', '#15803D', '#16A34A'],
+  },
+  // Vibrant/Bold
+  vibrant: {
+    sunset: ['#FFA500', '#FF8C00', '#FF6347', '#FF4500'],
+    tropical: ['#06B6D4', '#14B8A6', '#10B981', '#84CC16'],
+    electric: ['#8B5CF6', '#A855F7', '#C026D3', '#D946EF'],
+  },
 };
 
 /**
- * Generate a color palette based on industry and business parameters
+ * Mood-based color selection
+ * Maps moods to specific color groups from psychology library
+ */
+const moodToColors: Record<
+  'energetic' | 'calm' | 'professional' | 'playful' | 'luxurious',
+  string[]
+> = {
+  energetic: colorPsychology.energy,
+  calm: colorPsychology.calm,
+  professional: colorPsychology.professional,
+  playful: colorPsychology.playful,
+  luxurious: colorPsychology.luxury,
+};
+
+/**
+ * Trend-based palette modifiers
+ */
+const trendToBaseColors: Record<'earthy' | 'futuristic' | 'classic' | 'vibrant', string[]> = {
+  earthy: colorTrends2025.earthy.sage,
+  futuristic: colorTrends2025.futuristic.metallic,
+  classic: colorTrends2025.classic.navy,
+  vibrant: colorTrends2025.vibrant.tropical,
+};
+
+/**
+ * Generate an AI-powered, personalized color palette
+ * Uses mood and trend analysis to create unique, professional palettes
+ *
  * @param params - Color palette generation parameters
  * @returns ColorPalette object with primary, secondary, accent, neutral, and background colors
  *
@@ -178,43 +243,70 @@ export async function generateColorPalette(
   params: ColorPaletteParams
 ): Promise<ColorPalette> {
   try {
-    const { industry } = params;
+    // Extract mood and trend preferences using AI (or fallback to deterministic)
+    const preferences = await extractColorPreferences({
+      businessName: params.businessName,
+      description: params.description,
+      industry: params.industry,
+    });
 
-    // Get base color for the industry
-    const primaryColor = industryBaseColors[industry] || industryBaseColors.other;
+    // Get base colors from mood
+    const moodColors = moodToColors[preferences.mood];
+    const trendColors = trendToBaseColors[preferences.trend];
 
-    // Get color strategy for the industry
-    const strategy = industryColorStrategies[industry] || 'analogous';
+    // Select primary color - blend mood and trend
+    // Use mood color as primary (stronger emotional connection)
+    const primaryColor = moodColors[0] ?? '#2196F3';
 
+    // Create harmonious palette using advanced color theory
     let secondaryColor: string;
     let accentColor: string;
 
-    // Generate colors based on strategy
-    switch (strategy) {
-      case 'complementary': {
+    // Strategy based on trend
+    switch (preferences.trend) {
+      case 'earthy': {
+        // Earthy uses analogous colors with warm undertones
+        const analogous = ColorUtils.getAnalogous(primaryColor, 25);
+        secondaryColor = analogous[0] ?? trendColors[1] ?? primaryColor;
+        accentColor = trendColors[2] ?? analogous[1] ?? primaryColor;
+        break;
+      }
+      case 'futuristic': {
+        // Futuristic uses complementary with cool tones
         secondaryColor = ColorUtils.getComplementary(primaryColor);
-        const analogous = ColorUtils.getAnalogous(primaryColor, 45);
-        accentColor = analogous[0] ?? primaryColor;
+        accentColor = trendColors[2] ?? ColorUtils.adjustLightness(primaryColor, 15);
         break;
       }
-      case 'triadic': {
+      case 'vibrant': {
+        // Vibrant uses triadic for maximum color variety
         const triadic = ColorUtils.getTriadic(primaryColor);
-        secondaryColor = triadic[0] ?? primaryColor;
-        accentColor = triadic[1] ?? primaryColor;
+        secondaryColor = triadic[0] ?? trendColors[1] ?? primaryColor;
+        accentColor = triadic[1] ?? trendColors[2] ?? primaryColor;
         break;
       }
-      case 'analogous':
+      case 'classic':
       default: {
+        // Classic uses analogous for timeless sophistication
         const analogous = ColorUtils.getAnalogous(primaryColor, 30);
-        secondaryColor = analogous[0] ?? primaryColor;
-        accentColor = analogous[1] ?? primaryColor;
+        secondaryColor = analogous[0] ?? trendColors[1] ?? primaryColor;
+        accentColor = ColorUtils.adjustLightness(primaryColor, -15);
         break;
       }
     }
 
-    // Generate neutral and background colors
-    const neutralColor = '#6B7280'; // Tailwind gray-500
-    const backgroundColor = '#FFFFFF'; // White background
+    // Ensure accent color has good contrast with primary
+    accentColor = ensureContrast(primaryColor, accentColor);
+
+    // Generate neutral color based on mood
+    const neutralColor =
+      preferences.mood === 'luxurious'
+        ? '#4B5563' // Darker gray for luxury
+        : preferences.mood === 'playful'
+          ? '#9CA3AF' // Lighter gray for playful
+          : '#6B7280'; // Standard gray for others
+
+    // Background is always white for maximum versatility
+    const backgroundColor = '#FFFFFF';
 
     return {
       primary: primaryColor,
@@ -234,6 +326,30 @@ export async function generateColorPalette(
       neutral: '#6B7280',
       background: '#FFFFFF',
     };
+  }
+}
+
+/**
+ * Ensure accent color has sufficient contrast with primary
+ * Adjusts lightness if contrast ratio is too low
+ */
+function ensureContrast(primaryColor: string, accentColor: string): string {
+  try {
+    const primaryHSL = ColorUtils.hexToHSL(primaryColor);
+    const accentHSL = ColorUtils.hexToHSL(accentColor);
+
+    // If lightness difference is less than 25%, adjust accent
+    const lightnessDiff = Math.abs(primaryHSL.l - accentHSL.l);
+
+    if (lightnessDiff < 25) {
+      // Darken or lighten accent based on primary lightness
+      const adjustment = primaryHSL.l > 50 ? -30 : 30;
+      return ColorUtils.adjustLightness(accentColor, adjustment);
+    }
+
+    return accentColor;
+  } catch {
+    return accentColor; // Return original if processing fails
   }
 }
 

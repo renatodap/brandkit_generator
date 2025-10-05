@@ -1,5 +1,6 @@
 import { env } from '@/lib/env-runtime';
 import type { LogoGenerationParams } from '@/types';
+import { extractLogoSymbols } from './groq';
 
 /**
  * Hugging Face API configuration
@@ -23,28 +24,33 @@ export class HuggingFaceError extends Error {
 }
 
 /**
- * Build a prompt for logo generation
+ * Build an enhanced prompt for logo generation using AI-extracted symbols
  * @param params - Logo generation parameters
+ * @param symbols - Extracted symbolic elements and mood
  * @returns Optimized prompt for SDXL model
  */
-function buildLogoPrompt(params: LogoGenerationParams): string {
-  const { businessName, industry, description } = params;
+function buildEnhancedLogoPrompt(
+  params: LogoGenerationParams,
+  symbols: { primary: string; secondary: string; mood: string }
+): string {
+  const { businessName, industry } = params;
 
-  // Industry-specific style keywords
-  const industryStyles: Record<string, string> = {
-    tech: 'modern, minimalist, geometric, sleek, innovative',
-    food: 'appetizing, organic, warm, inviting, fresh',
-    fashion: 'elegant, sophisticated, stylish, trendy, chic',
-    health: 'clean, professional, trustworthy, calming, medical',
-    creative: 'artistic, colorful, expressive, unique, imaginative',
-    finance: 'professional, trustworthy, stable, premium, corporate',
-    education: 'friendly, approachable, knowledgeable, inspiring, academic',
-    other: 'professional, clean, modern, versatile',
+  // Industry-specific aesthetic keywords (enhanced from research)
+  const industryAesthetics: Record<string, string> = {
+    tech: 'sleek, geometric precision, futuristic, digital gradient, sharp angles',
+    food: 'organic curves, appetizing, warm tones, natural elements, inviting',
+    fashion: 'elegant lines, sophisticated, stylish minimalism, trendy, haute couture',
+    health: 'clean lines, medical precision, trustworthy, calming symmetry, professional',
+    creative: 'artistic flair, expressive, unique composition, imaginative, vibrant',
+    finance: 'corporate elegance, stable geometry, premium finish, authoritative, refined',
+    education: 'approachable, academic, inspiring, knowledgeable, progressive',
+    other: 'versatile, balanced, professional clarity, timeless',
   };
 
-  const style = industryStyles[industry] || industryStyles['other'];
+  const aesthetic = industryAesthetics[industry] || industryAesthetics['other'];
 
-  return `professional logo design for "${businessName}", ${description}, ${style}, vector art, flat design, simple, iconic, memorable, white background, centered composition, high quality`;
+  // Build comprehensive prompt with symbolic elements
+  return `professional logo design for "${businessName}", featuring a stylized ${symbols.primary} with ${symbols.secondary}, ${symbols.mood} mood, ${aesthetic}, minimalist icon, memorable brand symbol, clean lines, balanced composition, centered on white background, high contrast, corporate branding, ${industry} industry aesthetic, digital art, vector-style illustration, 8k quality, professional brand identity`;
 }
 
 /**
@@ -66,7 +72,15 @@ export async function generateLogo(
   params: LogoGenerationParams
 ): Promise<{ blob: Blob; prompt: string }> {
   try {
-    const prompt = buildLogoPrompt(params);
+    // Extract symbolic elements using AI (or fallback to deterministic)
+    const symbols = await extractLogoSymbols({
+      businessName: params.businessName,
+      description: params.description,
+      industry: params.industry,
+    });
+
+    // Build enhanced prompt with extracted symbols
+    const prompt = buildEnhancedLogoPrompt(params, symbols);
 
     const response = await fetch(`${HUGGINGFACE_API_URL}/${LOGO_MODEL}`, {
       method: 'POST',
@@ -78,9 +92,9 @@ export async function generateLogo(
         inputs: prompt,
         parameters: {
           negative_prompt:
-            'text, words, letters, watermark, signature, blurry, low quality, distorted, deformed',
-          num_inference_steps: 30,
-          guidance_scale: 7.5,
+            'text, words, letters, watermark, signature, realistic photo, photograph, blur, noise, gradient background, complex details, cluttered, busy, multiple objects, 3d render, shadows, heavy texture, photorealistic',
+          num_inference_steps: 40, // Increased from 30 for better quality
+          guidance_scale: 8.5, // Increased from 7.5 for stronger adherence to prompt
         },
       }),
     });
