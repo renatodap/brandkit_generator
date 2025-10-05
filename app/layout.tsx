@@ -36,7 +36,10 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL(process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'),
+  metadataBase: new URL(
+    process.env['NEXT_PUBLIC_APP_URL'] ||
+    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
+  ),
   openGraph: {
     title: 'Brand Kit Generator - AI-Powered Brand Identity',
     description:
