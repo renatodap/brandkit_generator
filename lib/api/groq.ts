@@ -504,6 +504,147 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 /**
+ * Generate justification for color palette choices
+ * Explains why these specific colors were chosen
+ */
+export async function generateColorJustification(params: {
+  businessName: string;
+  description: string;
+  industry: string;
+  colors: {
+    primary: string;
+    secondary: string;
+    accent: string;
+  };
+  mood: string;
+  trend: string;
+}): Promise<string> {
+  const client = getGroqClient();
+
+  // Fallback if Groq not configured
+  if (!client) {
+    return `The ${params.mood} color palette reflects your ${params.industry} industry with ${params.trend} aesthetics. The primary color (${params.colors.primary}) conveys trust and professionalism, while the secondary (${params.colors.secondary}) adds visual interest. The accent color (${params.colors.accent}) provides emphasis for calls-to-action.`;
+  }
+
+  try {
+    const prompt = `Explain why this color palette was chosen for a brand.
+
+Business: ${params.businessName}
+Description: ${params.description}
+Industry: ${params.industry}
+
+Colors Selected:
+- Primary: ${params.colors.primary}
+- Secondary: ${params.colors.secondary}
+- Accent: ${params.colors.accent}
+
+Mood: ${params.mood}
+Trend: ${params.trend}
+
+Write a concise 2-3 sentence explanation of why these specific colors work well for this brand. Focus on color psychology, the mood they convey, and how they align with the industry and brand personality. Be specific about what each color represents.`;
+
+    const completion = await client.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional brand strategist specializing in color psychology. Provide concise, insightful explanations.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 200,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from Groq');
+    }
+
+    return content.trim();
+  } catch (error) {
+    console.error('Groq color justification failed:', error);
+    return `The ${params.mood} color palette reflects your ${params.industry} industry with ${params.trend} aesthetics. The primary color (${params.colors.primary}) conveys trust and professionalism, while the secondary (${params.colors.secondary}) adds visual interest. The accent color (${params.colors.accent}) provides emphasis for calls-to-action.`;
+  }
+}
+
+/**
+ * Generate justification for font pairing choices
+ * Explains why these specific fonts were selected
+ */
+export async function generateFontJustification(params: {
+  businessName: string;
+  description: string;
+  industry: string;
+  fonts: {
+    primary: { name: string; category: string };
+    secondary: { name: string; category: string };
+  };
+  personality: {
+    modern: number;
+    classic: number;
+    playful: number;
+    elegant: number;
+    bold: number;
+    friendly: number;
+    professional: number;
+    luxurious: number;
+  };
+}): Promise<string> {
+  const client = getGroqClient();
+
+  // Fallback if Groq not configured
+  if (!client) {
+    return `${params.fonts.primary.name} (${params.fonts.primary.category}) pairs perfectly with ${params.fonts.secondary.name} (${params.fonts.secondary.category}) to create a ${params.industry} brand identity that is both professional and approachable. The combination ensures readability while conveying your brand's personality.`;
+  }
+
+  try {
+    // Get top personality traits
+    const traits = Object.entries(params.personality)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([trait]) => trait);
+
+    const prompt = `Explain why this font pairing was chosen for a brand.
+
+Business: ${params.businessName}
+Description: ${params.description}
+Industry: ${params.industry}
+
+Fonts Selected:
+- Primary (headlines): ${params.fonts.primary.name} (${params.fonts.primary.category})
+- Secondary (body text): ${params.fonts.secondary.name} (${params.fonts.secondary.category})
+
+Brand Personality: ${traits.join(', ')}
+
+Write a concise 2-3 sentence explanation of why these specific fonts work well together for this brand. Focus on how each font's characteristics match the brand personality, and why the pairing creates good visual hierarchy and readability.`;
+
+    const completion = await client.chat.completions.create({
+      model: DEFAULT_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional typography expert. Provide concise, insightful explanations about font pairings.',
+        },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 200,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('No response from Groq');
+    }
+
+    return content.trim();
+  } catch (error) {
+    console.error('Groq font justification failed:', error);
+    return `${params.fonts.primary.name} (${params.fonts.primary.category}) pairs perfectly with ${params.fonts.secondary.name} (${params.fonts.secondary.category}) to create a ${params.industry} brand identity that is both professional and approachable. The combination ensures readability while conveying your brand's personality.`;
+  }
+}
+
+/**
  * Check if Groq API is configured
  */
 export function isGroqConfigured(): boolean {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Download, ArrowLeft, Copy, Check } from 'lucide-react';
+import { Download, ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
 
@@ -15,6 +15,7 @@ export default function ResultsPage() {
   const router = useRouter();
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,6 +45,45 @@ export default function ResultsPage() {
     }
   };
 
+  const regenerateBrandKit = async () => {
+    if (!brandKit) return;
+
+    setIsRegenerating(true);
+    toast.info('Regenerating your brand kit...');
+
+    try {
+      const response = await fetch('/api/generate-brand-kit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          businessName: brandKit.businessName,
+          businessDescription: brandKit.businessDescription,
+          industry: brandKit.industry,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to regenerate brand kit');
+      }
+
+      const newBrandKit: BrandKit = await response.json();
+
+      // Update state and localStorage
+      setBrandKit(newBrandKit);
+      localStorage.setItem('brandKit', JSON.stringify(newBrandKit));
+
+      toast.success('Brand kit regenerated successfully!');
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to regenerate brand kit');
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const downloadBrandKit = async () => {
     if (!brandKit) return;
 
@@ -53,10 +93,23 @@ export default function ResultsPage() {
       const zip = new JSZip();
 
       // Add logo image
-      if (brandKit.logo.url.startsWith('data:')) {
-        const base64Data = brandKit.logo.url.split(',')[1];
-        if (base64Data) {
-          zip.file('logo.png', base64Data, { base64: true });
+      if (brandKit.logo.url) {
+        try {
+          if (brandKit.logo.url.startsWith('data:')) {
+            // Handle base64 data URLs
+            const base64Data = brandKit.logo.url.split(',')[1];
+            if (base64Data) {
+              zip.file('logo.png', base64Data, { base64: true });
+            }
+          } else {
+            // Handle external URLs (from DeepAI)
+            const logoResponse = await fetch(brandKit.logo.url);
+            const logoBlob = await logoResponse.blob();
+            zip.file('logo.png', logoBlob);
+          }
+        } catch (error) {
+          console.error('Failed to download logo:', error);
+          toast.warning('Logo could not be included in the download');
         }
       }
 
@@ -79,6 +132,7 @@ Accent:     ${brandKit.colors.accent}
 Neutral:    ${brandKit.colors.neutral}
 Background: ${brandKit.colors.background}
 
+${brandKit.justifications?.colors ? `Why these colors?\n${brandKit.justifications.colors}\n` : ''}
 ═══════════════════════════════════════════════════════════════
 
 TYPOGRAPHY:
@@ -88,6 +142,7 @@ Primary Font:   ${brandKit.fonts.primary.name} (${brandKit.fonts.primary.categor
 Secondary Font: ${brandKit.fonts.secondary.name} (${brandKit.fonts.secondary.category})
                 ${brandKit.fonts.secondary.url}
 
+${brandKit.justifications?.fonts ? `Why these fonts?\n${brandKit.justifications.fonts}\n` : ''}
 ═══════════════════════════════════════════════════════════════
 
 INDUSTRY: ${brandKit.industry.charAt(0).toUpperCase() + brandKit.industry.slice(1)}
@@ -97,7 +152,7 @@ These assets are AI-generated and should be reviewed before commercial use.
 Check for trademark conflicts and ensure compliance with your industry regulations.
 
 Generated with Brand Kit Generator
-Powered by Hugging Face & Google Fonts
+Powered by DeepAI & Google Fonts
       `.trim();
 
       zip.file('brand-kit-info.txt', brandKitInfo);
@@ -263,6 +318,7 @@ Powered by Hugging Face & Google Fonts
                     <div class="color-code">${brandKit.colors.background}</div>
                 </div>
             </div>
+            ${brandKit.justifications?.colors ? `<div style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; border-left: 4px solid ${brandKit.colors.primary};"><strong>Why these colors?</strong><br/>${brandKit.justifications.colors}</div>` : ''}
         </div>
 
         <div class="section">
@@ -283,6 +339,7 @@ Powered by Hugging Face & Google Fonts
                     Secondary Font • ${brandKit.fonts.secondary.category}
                 </div>
             </div>
+            ${brandKit.justifications?.fonts ? `<div style="margin-top: 1.5rem; padding: 1rem; background: #f9f9f9; border-radius: 8px; border-left: 4px solid ${brandKit.colors.primary};"><strong>Why these fonts?</strong><br/>${brandKit.justifications.fonts}</div>` : ''}
         </div>
 
         <div class="disclaimer">
@@ -334,10 +391,21 @@ Powered by Hugging Face & Google Fonts
           <ArrowLeft className="mr-2 h-4 w-4" />
           Create Another
         </Button>
-        <Button onClick={downloadBrandKit} disabled={isDownloading} aria-label="Download brand kit">
-          <Download className="mr-2 h-4 w-4" />
-          {isDownloading ? 'Downloading...' : 'Download Kit'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={regenerateBrandKit}
+            disabled={isRegenerating}
+            variant="outline"
+            aria-label="Regenerate brand kit"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+          </Button>
+          <Button onClick={downloadBrandKit} disabled={isDownloading} aria-label="Download brand kit">
+            <Download className="mr-2 h-4 w-4" />
+            {isDownloading ? 'Downloading...' : 'Download Kit'}
+          </Button>
+        </div>
       </div>
 
       {/* Brand Kit Display */}
@@ -396,6 +464,12 @@ Powered by Hugging Face & Google Fonts
                 );
               })}
             </div>
+            {brandKit.justifications?.colors && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground font-semibold mb-2">Why these colors?</p>
+                <p className="text-sm">{brandKit.justifications.colors}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -441,6 +515,13 @@ Powered by Hugging Face & Google Fonts
               </p>
               <p className="text-sm text-muted-foreground">For body text and descriptions</p>
             </div>
+
+            {brandKit.justifications?.fonts && (
+              <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                <p className="text-sm text-muted-foreground font-semibold mb-2">Why these fonts?</p>
+                <p className="text-sm">{brandKit.justifications.fonts}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

@@ -54,6 +54,7 @@ export interface FontPairing {
  */
 export interface BrandKit {
   businessName: string;
+  businessDescription: string;
   industry: Industry;
   logo: {
     url: string;
@@ -62,6 +63,10 @@ export interface BrandKit {
   colors: ColorPalette;
   fonts: FontPairing;
   tagline: string;
+  justifications?: {
+    colors?: string;
+    fonts?: string;
+  };
   generatedAt: string;
 }
 
