@@ -6,14 +6,6 @@
  * for generating brand assets.
  */
 
-// Hugging Face API - Logo and text generation
-export {
-  generateLogo,
-  generateText,
-  checkModelAvailability,
-  HuggingFaceError,
-} from './huggingface';
-
 // Color Palette Generation
 export {
   generateColorPalette,

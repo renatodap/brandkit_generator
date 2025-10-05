@@ -1,0 +1,16 @@
+{
+  "name": "Brand Kit Generator",
+  "short_name": "BrandKit",
+  "description": "AI-powered brand kit generator with SVG logos, color palettes, and typography",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

@@ -8,14 +8,15 @@
  */
 export const OPENROUTER_MODELS = {
   // Stage 1: Template Generation - Best for expansion and semantic reasoning
-  CLAUDE_SONNET_4: 'anthropic/claude-sonnet-4',
-  GROK_4_FAST: 'x-ai/grok-2-1212',
+  CLAUDE_SONNET_4: 'anthropic/claude-3.7-sonnet',
+  DEEPSEEK_V3: 'deepseek/deepseek-chat',
 
   // Stage 2: SVG Code Generation - Optimized for code generation
-  GROK_CODE_FAST: 'x-ai/grok-2-1212', // Using Grok 2 as code-optimized model
+  DEEPSEEK_CODER: 'deepseek/deepseek-coder',
+  QWEN_CODER: 'qwen/qwq-32b-preview',
 
   // Stage 3: Review and Optimization
-  CLAUDE_OPUS: 'anthropic/claude-opus-4',
+  CLAUDE_OPUS: 'anthropic/claude-3-opus',
   GPT4_TURBO: 'openai/gpt-4-turbo',
 } as const;
 
@@ -244,7 +245,7 @@ Focus on geometric simplicity and visual balance.
 Return ONLY the SVG code.`;
 
   const response = await callOpenRouter(
-    OPENROUTER_MODELS.GROK_CODE_FAST,
+    OPENROUTER_MODELS.DEEPSEEK_CODER,
     [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -348,7 +349,7 @@ Provide your score and feedback.`;
 
   try {
     const response = await callOpenRouter(
-      OPENROUTER_MODELS.GROK_4_FAST,
+      OPENROUTER_MODELS.DEEPSEEK_V3,
       [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },

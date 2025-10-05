@@ -1,4 +1,4 @@
-import { generateText, HuggingFaceError } from '@/lib/api/huggingface';
+import { callOpenRouter, OPENROUTER_MODELS, OpenRouterError } from '@/lib/api/openrouter';
 import type { TaglineGenerationParams, Industry } from '@/types';
 
 /**
@@ -149,19 +149,6 @@ const fallbackTaglines: Record<Industry, string[]> = {
   ],
 };
 
-/**
- * Build a prompt for tagline generation
- * @param params - Tagline generation parameters
- * @returns Optimized prompt for text generation
- */
-function buildTaglinePrompt(params: TaglineGenerationParams): string {
-  const { businessName, industry, description } = params;
-
-  const style = industryTaglineStyles[industry] || industryTaglineStyles.other;
-  const keywords = style.keywords.join(', ');
-
-  return `Generate a compelling, memorable tagline for "${businessName}", a ${industry} business. ${description}. The tagline should be ${style.tone}, use power words like ${keywords}, and be under 6 words. Tagline:`;
-}
 
 /**
  * Clean and validate generated tagline
@@ -246,7 +233,7 @@ function getFallbackTagline(industry: Industry): string {
  * Generate a compelling tagline using AI
  * @param params - Tagline generation parameters
  * @returns Promise resolving to generated tagline
- * @throws {HuggingFaceError} If generation fails completely
+ * @throws {OpenRouterError} If generation fails completely
  *
  * @example
  * ```typescript
@@ -261,14 +248,41 @@ export async function generateTagline(
   params: TaglineGenerationParams
 ): Promise<string> {
   try {
-    // Build the prompt
-    const prompt = buildTaglinePrompt(params);
+    const { businessName, industry, description } = params;
+    const style = industryTaglineStyles[industry] || industryTaglineStyles.other;
 
-    // Try to generate with AI
-    const rawTagline = await generateText(prompt, 30);
+    const systemPrompt = `You are a professional brand copywriter specializing in memorable taglines. Generate concise, impactful taglines that capture the essence of a brand.`;
+
+    const userPrompt = `Create a compelling tagline for "${businessName}", a ${industry} business.
+
+Description: ${description}
+
+Style: ${style.tone}
+Keywords to inspire: ${style.keywords.join(', ')}
+
+Requirements:
+- 3-6 words maximum
+- No business name in tagline
+- ${style.tone} tone
+- Memorable and unique
+- Action-oriented or aspirational
+
+Examples of good ${industry} taglines:
+${style.examples.map((ex) => `- ${ex}`).join('\n')}
+
+Return ONLY the tagline, nothing else.`;
+
+    const response = await callOpenRouter(
+      OPENROUTER_MODELS.DEEPSEEK_V3,
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      { temperature: 0.8, maxTokens: 50 }
+    );
 
     // Clean and validate the result
-    const cleanedTagline = cleanTagline(rawTagline, params);
+    const cleanedTagline = cleanTagline(response, params);
 
     if (cleanedTagline) {
       return cleanedTagline;
@@ -281,8 +295,8 @@ export async function generateTagline(
     // If AI generation fails, use fallback
     console.error('Tagline generation failed:', error);
 
-    if (error instanceof HuggingFaceError) {
-      console.error(`HuggingFace error: ${error.message} (${error.code})`);
+    if (error instanceof OpenRouterError) {
+      console.error(`OpenRouter error: ${error.message} (${error.code})`);
     }
 
     return getFallbackTagline(params.industry);
