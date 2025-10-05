@@ -1,37 +1,88 @@
-import type { Industry } from '@/types';
+/**
+ * Logo utilities for SVG generation and conversion
+ */
 
 /**
- * Build an enhanced prompt for logo generation using AI-extracted symbols
- * Optimized for DeepAI Genius mode
+ * Convert SVG code to data URL for use in img tags
  */
-export function buildEnhancedLogoPrompt(
-  params: {
-    businessName: string;
-    description: string;
-    industry: Industry;
-  },
-  symbols: {
-    primary: string;
-    secondary: string;
-    mood: string;
-  }
-): string {
-  const { businessName, industry } = params;
+export function svgToDataURL(svgCode: string): string {
+  // Clean and encode SVG
+  const cleanSvg = svgCode.trim();
+  const base64 = Buffer.from(cleanSvg).toString('base64');
+  return `data:image/svg+xml;base64,${base64}`;
+}
 
-  // Industry-specific aesthetic keywords (enhanced for DeepAI)
-  const industryAesthetics: Record<string, string> = {
-    tech: 'sleek, geometric precision, futuristic, digital gradient, sharp angles, modern tech aesthetic',
-    food: 'organic curves, appetizing, warm tones, natural elements, inviting, culinary design',
-    fashion: 'elegant lines, sophisticated, stylish minimalism, trendy, haute couture, luxury branding',
-    health: 'clean lines, medical precision, trustworthy, calming symmetry, professional healthcare',
-    creative: 'artistic flair, expressive, unique composition, imaginative, vibrant creative energy',
-    finance: 'corporate elegance, stable geometry, premium finish, authoritative, refined financial',
-    education: 'approachable, academic excellence, inspiring, knowledgeable, progressive learning',
-    other: 'versatile, balanced, professional clarity, timeless design, universal appeal',
+/**
+ * Validate SVG code structure
+ */
+export function isValidSVG(svgCode: string): boolean {
+  const trimmed = svgCode.trim();
+  return trimmed.startsWith('<svg') && trimmed.endsWith('</svg>');
+}
+
+/**
+ * Extract viewBox dimensions from SVG code
+ */
+export function extractViewBox(svgCode: string): {
+  width: number;
+  height: number;
+} | null {
+  const viewBoxMatch = svgCode.match(/viewBox=["']([^"']+)["']/);
+  if (!viewBoxMatch || !viewBoxMatch[1]) return null;
+
+  const values = viewBoxMatch[1].split(/\s+/).map(Number);
+  if (values.length !== 4) return null;
+
+  const width = values[2];
+  const height = values[3];
+
+  if (width === undefined || height === undefined) return null;
+
+  return {
+    width,
+    height,
   };
+}
 
-  const aesthetic = industryAesthetics[industry] || industryAesthetics['other'];
+/**
+ * Ensure SVG has proper dimensions for rendering
+ */
+export function normalizeSVG(svgCode: string): string {
+  let normalized = svgCode.trim();
 
-  // Build comprehensive prompt optimized for DeepAI Genius mode
-  return `professional minimalist logo design for "${businessName}", featuring a stylized ${symbols.primary} with ${symbols.secondary}, ${symbols.mood} and ${aesthetic}, flat design vector illustration, simple iconic symbol, clean geometric shapes, memorable brand mark, perfect symmetry, centered composition, solid white background, high contrast, modern corporate branding identity, ${industry} industry, minimalist graphic design, professional quality, sharp clean edges, 8k resolution`;
+  // Ensure viewBox is present
+  if (!normalized.includes('viewBox')) {
+    normalized = normalized.replace(
+      /<svg/,
+      '<svg viewBox="0 0 512 512"'
+    );
+  }
+
+  // Ensure xmlns is present
+  if (!normalized.includes('xmlns')) {
+    normalized = normalized.replace(
+      /<svg/,
+      '<svg xmlns="http://www.w3.org/2000/svg"'
+    );
+  }
+
+  return normalized;
+}
+
+/**
+ * Optimize SVG code for production
+ */
+export function optimizeSVG(svgCode: string): string {
+  let optimized = svgCode;
+
+  // Remove comments
+  optimized = optimized.replace(/<!--[\s\S]*?-->/g, '');
+
+  // Remove unnecessary whitespace
+  optimized = optimized.replace(/>\s+</g, '><');
+
+  // Normalize whitespace
+  optimized = optimized.replace(/\s+/g, ' ');
+
+  return optimized.trim();
 }

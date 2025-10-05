@@ -92,23 +92,30 @@ export default function ResultsPage() {
     try {
       const zip = new JSZip();
 
-      // Add logo image
+      // Add logo file (SVG or PNG)
       if (brandKit.logo.url) {
         try {
-          if (brandKit.logo.url.startsWith('data:')) {
-            // Handle base64 data URLs
+          if (brandKit.logo.svgCode) {
+            // Save SVG source code
+            zip.file('logo.svg', brandKit.logo.svgCode);
+          }
+
+          if (brandKit.logo.url.startsWith('data:image/svg')) {
+            // Also save as data URL SVG for compatibility
+            const base64Data = brandKit.logo.url.split(',')[1];
+            if (base64Data && !brandKit.logo.svgCode) {
+              const svgContent = Buffer.from(base64Data, 'base64').toString('utf-8');
+              zip.file('logo.svg', svgContent);
+            }
+          } else if (brandKit.logo.url.startsWith('data:')) {
+            // Handle other base64 data URLs (PNG)
             const base64Data = brandKit.logo.url.split(',')[1];
             if (base64Data) {
               zip.file('logo.png', base64Data, { base64: true });
             }
-          } else {
-            // Handle external URLs (from DeepAI)
-            const logoResponse = await fetch(brandKit.logo.url);
-            const logoBlob = await logoResponse.blob();
-            zip.file('logo.png', logoBlob);
           }
         } catch (error) {
-          console.error('Failed to download logo:', error);
+          console.error('Failed to add logo to download:', error);
           toast.warning('Logo could not be included in the download');
         }
       }
@@ -152,7 +159,7 @@ These assets are AI-generated and should be reviewed before commercial use.
 Check for trademark conflicts and ensure compliance with your industry regulations.
 
 Generated with Brand Kit Generator
-Powered by DeepAI & Google Fonts
+Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
       `.trim();
 
       zip.file('brand-kit-info.txt', brandKitInfo);
@@ -418,13 +425,23 @@ Powered by DeepAI & Google Fonts
           </CardHeader>
           <CardContent>
             {brandKit.logo.url && (
-              <div className="flex justify-center p-8 bg-muted rounded-lg">
-                <img
-                  src={brandKit.logo.url}
-                  alt={`${brandKit.businessName} logo`}
-                  className="max-w-md w-full h-auto"
-                />
-              </div>
+              <>
+                <div className="flex justify-center p-8 bg-muted rounded-lg">
+                  <img
+                    src={brandKit.logo.url}
+                    alt={`${brandKit.businessName} logo`}
+                    className="max-w-md w-full h-auto"
+                  />
+                </div>
+                {brandKit.justifications?.logo && (
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-border">
+                    <p className="text-sm text-muted-foreground font-semibold mb-2">
+                      Design Quality Assessment
+                    </p>
+                    <p className="text-sm">{brandKit.justifications.logo}</p>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
         </Card>

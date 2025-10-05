@@ -58,7 +58,7 @@ export interface BrandKit {
   industry: Industry;
   logo: {
     url: string;
-    prompt: string;
+    svgCode?: string;
   };
   colors: ColorPalette;
   fonts: FontPairing;
@@ -66,6 +66,7 @@ export interface BrandKit {
   justifications?: {
     colors?: string;
     fonts?: string;
+    logo?: string;
   };
   generatedAt: string;
 }

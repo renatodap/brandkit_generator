@@ -4,10 +4,10 @@ import { brandKitInputSchema } from '@/lib/validations';
 import { generateColorPalette, getFontPairing, generateTagline } from '@/lib/api';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import {
-  generateLogoWithPostProcessing,
-  isDeepAIConfigured,
-  DeepAIError,
-} from '@/lib/api/deepai';
+  generateLogoWithWorkflow,
+  isOpenRouterConfigured,
+  OpenRouterError,
+} from '@/lib/api/openrouter';
 import {
   extractLogoSymbols,
   extractColorPreferences,
@@ -15,7 +15,7 @@ import {
   generateColorJustification,
   generateFontJustification,
 } from '@/lib/api/groq';
-import { buildEnhancedLogoPrompt } from '@/lib/api/logo-utils';
+import { svgToDataURL, normalizeSVG, optimizeSVG } from '@/lib/api/logo-utils';
 import type { BrandKit } from '@/types';
 
 /**
@@ -102,73 +102,97 @@ export async function POST(request: NextRequest) {
             luxurious: 0.3,
           };
 
-    // Step 2: Generate core brand assets in parallel
+    // Step 2: Generate color palette first (needed for logo generation)
+    console.log('🎨 Generating color palette...');
+    const colorPaletteResult = await (async () => {
+      try {
+        return await generateColorPalette({
+          businessName,
+          description: businessDescription,
+          industry,
+        });
+      } catch (error) {
+        console.error('Color palette generation failed:', error);
+        return {
+          primary: '#3B82F6',
+          secondary: '#8B5CF6',
+          accent: '#10B981',
+          neutral: '#6B7280',
+          background: '#FFFFFF',
+        };
+      }
+    })();
+
+    // Step 3: Generate core brand assets in parallel
     console.log('🎨 Generating brand assets...');
-    const [logoResult, colorPaletteResult, fontPairingResult, taglineResult] =
-      await Promise.allSettled([
-        // Logo generation with DeepAI
-        (async () => {
-          if (!isDeepAIConfigured()) {
-            throw new DeepAIError(
-              'DEEPAI_API_KEY not configured. Please add it to your environment variables.',
-              500,
-              'MISSING_API_KEY'
-            );
-          }
-
-          const logoPrompt = buildEnhancedLogoPrompt(
-            {
-              businessName,
-              description: businessDescription,
-              industry,
-            },
-            symbols
+    const [logoResult, fontPairingResult, taglineResult] = await Promise.allSettled([
+      // Logo generation with OpenRouter multi-model workflow
+      (async () => {
+        if (!isOpenRouterConfigured()) {
+          throw new OpenRouterError(
+            'OPENROUTER_API_KEY not configured. Please add it to your environment variables.',
+            500,
+            'MISSING_API_KEY'
           );
+        }
 
-          console.log('🖼️  Generating logo with DeepAI Genius mode...');
-          return await generateLogoWithPostProcessing(logoPrompt, {
-            width: 1024,
-            height: 1024,
-            negativePrompt:
-              'text, words, letters, watermark, signature, realistic photo, photograph, blur, noise, gradient background, complex details, cluttered, busy, multiple objects, 3d render, shadows, heavy texture, photorealistic, people, faces',
-            skipBackgroundRemoval: false,
-            skipUpscaling: false,
-          });
-        })(),
-        // Color palette
-        generateColorPalette({
+        console.log('🖼️  Generating SVG logo with multi-model workflow...');
+        const result = await generateLogoWithWorkflow({
           businessName,
           description: businessDescription,
           industry,
-        }),
-        // Font pairing with personality
-        getFontPairing({
-          industry,
-          businessName,
-          description: businessDescription,
-        }),
-        // Tagline
-        generateTagline({
-          businessName,
-          description: businessDescription,
-          industry,
-        }),
-      ]);
+          symbols,
+          colorPalette: {
+            primary: colorPaletteResult.primary,
+            secondary: colorPaletteResult.secondary,
+            accent: colorPaletteResult.accent,
+          },
+        });
+
+        // Normalize and optimize SVG
+        const normalizedSvg = normalizeSVG(result.svgCode);
+        const optimizedSvg = optimizeSVG(normalizedSvg);
+
+        // Convert to data URL
+        const dataUrl = svgToDataURL(optimizedSvg);
+
+        return {
+          url: dataUrl,
+          svgCode: optimizedSvg,
+          template: result.template,
+          quality: result.quality,
+        };
+      })(),
+      // Font pairing with personality
+      getFontPairing({
+        industry,
+        businessName,
+        description: businessDescription,
+      }),
+      // Tagline
+      generateTagline({
+        businessName,
+        description: businessDescription,
+        industry,
+      }),
+    ]);
 
     // Handle logo generation result
     let logoUrl = '';
-    let logoPrompt = '';
+    let logoSvgCode = '';
+    let logoQuality = { score: 0, feedback: '' };
 
     if (logoResult.status === 'fulfilled' && logoResult.value) {
-      logoUrl = logoResult.value.finalUrl;
-      logoPrompt = logoResult.value.prompt;
-      console.log('✅ Logo generated successfully');
+      logoUrl = logoResult.value.url;
+      logoSvgCode = logoResult.value.svgCode;
+      logoQuality = logoResult.value.quality;
+      console.log(`✅ Logo generated successfully (Quality: ${logoQuality.score}/10)`);
     } else {
       console.error(
         '❌ Logo generation failed:',
         logoResult.status === 'rejected' ? logoResult.reason : 'Unknown error'
       );
-      // Return error if DeepAI fails
+      // Return error if OpenRouter fails
       const errorMessage =
         logoResult.status === 'rejected' && logoResult.reason instanceof Error
           ? logoResult.reason.message
@@ -179,23 +203,14 @@ export async function POST(request: NextRequest) {
           error: 'Logo generation failed',
           message: errorMessage,
           details:
-            'Please ensure DEEPAI_API_KEY is configured in your environment variables.',
+            'Please ensure OPENROUTER_API_KEY is configured in your environment variables.',
         },
         { status: 500 }
       );
     }
 
-    // Handle color palette result
-    const colorPalette =
-      colorPaletteResult.status === 'fulfilled'
-        ? colorPaletteResult.value
-        : {
-            primary: '#3B82F6',
-            secondary: '#8B5CF6',
-            accent: '#10B981',
-            neutral: '#6B7280',
-            background: '#FFFFFF',
-          };
+    // Color palette already generated earlier
+    const colorPalette = colorPaletteResult;
 
     // Handle font pairing result
     const fontPairing =
@@ -222,7 +237,7 @@ export async function POST(request: NextRequest) {
         ? taglineResult.value
         : `${businessName} - Excellence in ${industry}`;
 
-    // Step 3: Generate justifications in parallel
+    // Step 4: Generate justifications in parallel
     console.log('📝 Generating justifications...');
     const [colorJustificationResult, fontJustificationResult] = await Promise.allSettled([
       generateColorJustification({
@@ -272,7 +287,7 @@ export async function POST(request: NextRequest) {
       industry,
       logo: {
         url: logoUrl,
-        prompt: logoPrompt,
+        svgCode: logoSvgCode,
       },
       colors: colorPalette,
       fonts: fontPairing,
@@ -280,6 +295,7 @@ export async function POST(request: NextRequest) {
       justifications: {
         colors: colorJustification,
         fonts: fontJustification,
+        logo: logoQuality.feedback,
       },
       generatedAt: new Date().toISOString(),
     };
