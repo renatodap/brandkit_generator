@@ -1,0 +1,79 @@
+{
+  "name": "brandkit-generator",
+  "version": "1.0.0",
+  "description": "AI-powered brand kit generator - Production-ready MVP",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "next": "^14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.2",
+    "@hookform/resolvers": "^3.9.1",
+    "zod": "^3.23.8",
+    "jszip": "^3.10.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.5",
+    "lucide-react": "^0.460.0",
+    "sonner": "^1.7.1",
+    "@radix-ui/react-dialog": "^1.1.2",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.2",
+    "@radix-ui/react-select": "^2.1.2",
+    "@radix-ui/react-label": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.18",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "tailwindcss": "^3.4.15",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20",
+    "@tailwindcss/typography": "^0.5.15",
+    "tailwindcss-animate": "^1.0.7",
+    "vitest": "^2.1.5",
+    "@vitest/coverage-v8": "^2.1.5",
+    "@vitest/ui": "^2.1.5",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "@playwright/test": "^1.49.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.10"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{md,json}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
