@@ -15,15 +15,18 @@ import { updateBusinessSchema } from '@/lib/validations/business';
  * Get a specific business by ID
  */
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require authentication
     const user = await requireUser();
 
+    // Await params (Next.js 15 pattern)
+    const { id } = await params;
+
     // Fetch business
-    const business = await getBusinessById(params.id, user.id);
+    const business = await getBusinessById(id, user.id);
 
     if (!business) {
       return NextResponse.json(
@@ -48,18 +51,21 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require authentication
     const user = await requireUser();
+
+    // Await params (Next.js 15 pattern)
+    const { id } = await params;
 
     // Parse and validate request body
     const body = await request.json();
     const validated = updateBusinessSchema.parse(body);
 
     // Update business
-    const business = await updateBusiness(params.id, user.id, validated);
+    const business = await updateBusiness(id, user.id, validated);
 
     if (!business) {
       return NextResponse.json(
@@ -97,15 +103,18 @@ export async function PATCH(
  * Delete a business (will cascade delete associated brand kit)
  */
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Require authentication
     const user = await requireUser();
 
+    // Await params (Next.js 15 pattern)
+    const { id } = await params;
+
     // Delete business
-    const deleted = await deleteBusiness(params.id, user.id);
+    const deleted = await deleteBusiness(id, user.id);
 
     if (!deleted) {
       return NextResponse.json(
