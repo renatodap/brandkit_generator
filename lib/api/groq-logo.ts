@@ -165,14 +165,18 @@ DESIGN PRINCIPLES (CRITICAL):
 - SYMMETRY or intentional asymmetry only
 - Must be SCALABLE (recognizable at 16px and 512px)
 
-TECHNICAL CONSTRAINTS:
+TECHNICAL CONSTRAINTS (STRICT):
 - viewBox="0 0 200 200" (consistent sizing)
 - ONLY use: <rect>, <circle>, <ellipse>, <polygon>, <path>
 - <path>: Maximum 5 commands (M, L, Q, C, Z)
 - Group related elements: <g id="...">
 - 2-8 shapes total (not too simple, not too complex)
 - Round corners (rx/ry) for modern feel
-- NO text, gradients, filters, animations
+- ⛔ ABSOLUTELY NO <text> OR <tspan> ELEMENTS - SHAPES ONLY!
+- ⛔ NO gradients, filters, animations, or external dependencies
+
+CRITICAL: This is a SYMBOL/MARK logo, NOT a wordmark. Do NOT include the company name as text.
+The logo should represent the brand through SHAPES and VISUAL SYMBOLS ONLY.
 
 QUALITY STANDARDS:
 - Logo must be MEMORABLE - can you draw it from memory?
@@ -201,8 +205,9 @@ CRITICAL REQUIREMENTS:
 4. GEOMETRIC and BALANCED - use circles, squares, triangles as base
 5. Must look professional in BLACK & WHITE
 6. Think: Apple, Nike, Airbnb - SIMPLE but ICONIC
+7. ⛔ DO NOT USE <text> or <tspan> - This is a SYMBOL logo using SHAPES ONLY
 
-Return ONLY the SVG code. Make it MEMORABLE!`;
+Return ONLY the SVG code with geometric shapes. NO TEXT ELEMENTS!`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -265,8 +270,11 @@ EVALUATION CRITERIA:
 
 Your job: FIX what's broken and make it ICONIC.
 
-Use ONLY: rect, circle, ellipse, polygon, path (max 5 commands per path).
-Return improved SVG that's MORE memorable, MORE balanced, MORE professional.`;
+STRICT RULES:
+- Use ONLY: rect, circle, ellipse, polygon, path (max 5 commands per path)
+- ⛔ NEVER use <text> or <tspan> elements - this is a SYMBOL logo
+- Return improved SVG that's MORE memorable, MORE balanced, MORE professional
+- If the current SVG has text, REMOVE IT and replace with pure geometric shapes`;
 
   const userPrompt = `Review this logo and make it MORE ICONIC (iteration ${iteration}/2):
 
@@ -282,8 +290,9 @@ IMPROVE IT:
 ✓ Enhance NEGATIVE SPACE - what you remove matters
 ✓ Ensure BLACK & WHITE version works perfectly
 ✓ Think: Apple, Nike, Twitter - SIMPLE but UNFORGETTABLE
+✓ ⛔ REMOVE any <text> or <tspan> if present - use SHAPES ONLY
 
-Return ONLY the improved SVG code. Make it ICONIC!`;
+Return ONLY the improved SVG code with geometric shapes. NO TEXT!`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -387,13 +396,18 @@ Provide your score and feedback.`;
 /**
  * Quality threshold configuration
  */
-const QUALITY_THRESHOLD = 7.0; // Minimum acceptable quality score
-const MAX_REGENERATION_ATTEMPTS = 3; // Maximum attempts to generate a quality logo
+const QUALITY_THRESHOLD = 8.0; // Minimum acceptable quality score (strict - must be "great" or better)
+const MAX_REGENERATION_ATTEMPTS = 5; // Maximum attempts to generate a quality logo
 
 /**
  * Validates SVG code for basic sanity checks
  */
 function validateSVGCode(svgCode: string): { valid: boolean; error?: string } {
+  // CRITICAL: Check if SVG contains text elements (FORBIDDEN for logos)
+  if (svgCode.includes('<text') || svgCode.includes('<tspan')) {
+    return { valid: false, error: 'SVG contains text elements (forbidden - use shapes only)' };
+  }
+
   // Check if SVG has viewBox
   if (!svgCode.includes('viewBox')) {
     return { valid: false, error: 'Missing viewBox attribute' };
