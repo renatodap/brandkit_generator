@@ -17,6 +17,8 @@ import {
 } from '@/lib/api/groq';
 import { svgToDataURL, normalizeSVG, optimizeSVG } from '@/lib/api/logo-utils';
 import { enhancePrompt } from '@/lib/utils/prompt-enhancement';
+import { getUser } from '@/lib/supabase/server';
+import { createBrandKit } from '@/lib/services/brand-kit-service';
 import type { BrandKit } from '@/types';
 
 /**
@@ -389,6 +391,55 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('✅ Brand kit generated successfully for:', businessName);
+
+    // Save to database if user is authenticated
+    try {
+      const user = await getUser();
+
+      if (user && logoUrl) {
+        console.log('💾 Saving brand kit to database for user:', user.id);
+
+        // Convert color palette to array format for database
+        const colorsArray = [
+          { name: 'Primary', hex: colorPalette.primary, usage: 'primary' },
+          { name: 'Secondary', hex: colorPalette.secondary, usage: 'secondary' },
+          { name: 'Accent', hex: colorPalette.accent, usage: 'accent' },
+          { name: 'Neutral', hex: colorPalette.neutral, usage: 'neutral' },
+          { name: 'Background', hex: colorPalette.background, usage: 'background' },
+        ];
+
+        const savedBrandKit = await createBrandKit(user.id, {
+          businessName,
+          businessDescription,
+          industry,
+          logoUrl,
+          logoSvg: logoSvgCode || null,
+          colors: colorsArray,
+          fonts: {
+            primary: fontPairing.primary.name,
+            secondary: fontPairing.secondary.name,
+          },
+          tagline: brandTagline,
+        });
+
+        console.log('✅ Brand kit saved to database with ID:', savedBrandKit.id);
+
+        // Add database ID to response
+        return NextResponse.json(
+          { ...brandKit, id: savedBrandKit.id },
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store, must-revalidate',
+            },
+          }
+        );
+      }
+    } catch (error) {
+      // Log error but don't fail the request - user still gets their brand kit
+      console.log('ℹ️  Brand kit not saved to database (user not authenticated or error):', error);
+    }
 
     return NextResponse.json(brandKit, {
       status: 200,

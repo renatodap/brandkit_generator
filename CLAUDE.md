@@ -180,17 +180,154 @@ function helperFunction() {
 - Validate env vars on startup with Zod
 - Prefix client vars with NEXT_PUBLIC_
 - Document all vars in .env.example
+- NEVER expose SUPABASE_SERVICE_KEY or SUPABASE_ACCESS_TOKEN in client-side code
 
 // Example validation:
 import { z } from 'zod';
 
 const envSchema = z.object({
-  HUGGINGFACE_API_KEY: z.string().min(1),
-  NEXT_PUBLIC_APP_URL: z.string().url(),
+  // Supabase (CRITICAL: Protect service keys!)
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1), // Safe for client
+  SUPABASE_SERVICE_KEY: z.string().min(1), // SERVER-ONLY
+  SUPABASE_ACCESS_TOKEN: z.string().min(1).optional(), // For Supabase CLI/migrations
+
+  // AI APIs
+  GROQ_API_KEY: z.string().min(1),
+  OPENROUTER_API_KEY: z.string().min(1).optional(),
+
+  // App config
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
 });
 
 export const env = envSchema.parse(process.env);
 ```
+
+### Supabase Security Best Practices
+
+**CRITICAL: Three Types of Supabase Keys**
+
+1. **Anon/Public Key** (`NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+   - ✅ Safe to use in browser/client-side code
+   - Respects Row Level Security (RLS) policies
+   - Use with `createBrowserClient()` from `@supabase/ssr`
+   - Example: User sign-in, fetching own data
+
+2. **Service Role Key** (`SUPABASE_SERVICE_KEY`)
+   - ❌ NEVER use in client-side code
+   - Bypasses ALL Row Level Security policies
+   - Only use in API routes, server components, server actions
+   - Use with `createClient()` from `@supabase/supabase-js` with service key
+   - Example: Admin operations, public share links, migrations
+
+3. **Access Token** (`SUPABASE_ACCESS_TOKEN`)
+   - For Supabase CLI and management API
+   - Used for database migrations, project management
+   - Never needed in application code
+
+**Usage Examples:**
+
+```typescript
+// ✅ CORRECT: Client-side (respects RLS)
+// lib/supabase/client.ts
+import { createBrowserClient } from '@supabase/ssr';
+
+export function createClient() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! // Uses anon key
+  );
+}
+
+// ✅ CORRECT: Server-side with user context (respects RLS)
+// lib/supabase/server.ts
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+
+export async function createClient() {
+  const cookieStore = cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, // Still uses anon key
+    {
+      cookies: {
+        get(name) { return cookieStore.get(name)?.value; },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }); },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }); },
+      },
+    }
+  );
+}
+
+// ✅ CORRECT: Admin operations (bypasses RLS)
+// lib/supabase/server.ts
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+export function createAdminClient() {
+  return createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_KEY!, // Uses service role key
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
+  );
+}
+
+// ❌ WRONG: Service key in client-side code
+// app/components/my-component.tsx (CLIENT COMPONENT)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY // NEVER DO THIS!
+);
+```
+
+**Row Level Security (RLS) Policies**
+
+All database tables MUST have RLS enabled with proper policies:
+
+```sql
+-- Enable RLS
+ALTER TABLE brand_kits ENABLE ROW LEVEL SECURITY;
+
+-- Users can only view their own brand kits
+CREATE POLICY "Users can view own brand kits"
+  ON brand_kits FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can only insert their own brand kits
+CREATE POLICY "Users can insert own brand kits"
+  ON brand_kits FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can only update their own brand kits
+CREATE POLICY "Users can update own brand kits"
+  ON brand_kits FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Users can only delete their own brand kits
+CREATE POLICY "Users can delete own brand kits"
+  ON brand_kits FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Public share access (no user_id check)
+CREATE POLICY "Anyone can view shared brand kits"
+  ON share_tokens FOR SELECT
+  USING (expires_at > NOW());
+```
+
+**When to Use Each Client:**
+
+| Scenario | Client Type | Key Used | RLS |
+|----------|-------------|----------|-----|
+| User viewing own data | Browser/Server Client | Anon Key | ✅ Enforced |
+| User creating data | Browser/Server Client | Anon Key | ✅ Enforced |
+| Public share page | Admin Client (API route) | Service Key | ❌ Bypassed |
+| Background jobs | Admin Client (server) | Service Key | ❌ Bypassed |
+| Database migrations | Supabase CLI | Access Token | N/A |
 
 ### API Security
 ```typescript
@@ -213,10 +350,245 @@ const ratelimit = new Ratelimit({
 ```
 
 ### Data Handling
-- Never log sensitive data
+- Never log sensitive data (passwords, API keys, tokens)
 - Sanitize error messages before showing to users
 - Use HTTPS only (enforce in production)
 - Implement CSRF protection for forms
+- All Supabase queries MUST use RLS policies (except admin operations)
+- Validate and sanitize ALL user inputs before database operations
+
+### Supabase Database Operations
+
+**Service Layer Pattern (REQUIRED)**
+
+Always use a service layer to centralize database operations:
+
+```typescript
+// lib/services/brand-kit-service.ts
+import { createClient, createAdminClient } from '@/lib/supabase/server';
+
+/**
+ * Create a new brand kit (uses RLS - user context required)
+ */
+export async function createBrandKit(userId: string, data: CreateBrandKitInput) {
+  const supabase = await createClient(); // Uses anon key with user session
+
+  const { data: brandKit, error } = await supabase
+    .from('brand_kits')
+    .insert({
+      user_id: userId, // RLS will verify this matches auth.uid()
+      business_name: data.businessName,
+      business_description: data.businessDescription,
+      industry: data.industry,
+      logo_url: data.logoUrl,
+      logo_svg: data.logoSvg,
+      colors: data.colors,
+      fonts: data.fonts,
+      tagline: data.tagline,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to create brand kit:', error);
+    throw new Error('Failed to create brand kit');
+  }
+
+  return brandKit;
+}
+
+/**
+ * Get brand kit by share token (bypasses RLS - admin operation)
+ */
+export async function getBrandKitByShareToken(token: string) {
+  const supabase = createAdminClient(); // Uses service key to bypass RLS
+
+  // First, verify token is valid and not expired
+  const { data: shareToken, error: tokenError } = await supabase
+    .from('share_tokens')
+    .select('brand_kit_id, expires_at')
+    .eq('token', token)
+    .gte('expires_at', new Date().toISOString())
+    .single();
+
+  if (tokenError || !shareToken) {
+    return null;
+  }
+
+  // Fetch brand kit with admin client (bypasses user_id check)
+  const { data: brandKit, error } = await supabase
+    .from('brand_kits')
+    .select('*')
+    .eq('id', shareToken.brand_kit_id)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return brandKit;
+}
+
+/**
+ * Get user's brand kits (uses RLS - automatically filtered by user_id)
+ */
+export async function getUserBrandKits(userId: string, filters?: {
+  isFavorite?: boolean;
+  industry?: string;
+  limit?: number;
+}) {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from('brand_kits')
+    .select('*')
+    .eq('user_id', userId) // Redundant with RLS, but explicit
+    .order('created_at', { ascending: false });
+
+  if (filters?.isFavorite) {
+    query = query.eq('is_favorite', true);
+  }
+
+  if (filters?.industry) {
+    query = query.eq('industry', filters.industry);
+  }
+
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to fetch brand kits:', error);
+    throw new Error('Failed to fetch brand kits');
+  }
+
+  return data;
+}
+```
+
+**API Route Usage:**
+
+```typescript
+// app/api/brand-kits/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { requireUser } from '@/lib/supabase/server';
+import { createBrandKit } from '@/lib/services/brand-kit-service';
+import { z } from 'zod';
+
+const createBrandKitSchema = z.object({
+  businessName: z.string().min(1).max(255),
+  businessDescription: z.string().optional(),
+  industry: z.string().optional(),
+  logoUrl: z.string().url(),
+  logoSvg: z.string().optional(),
+  colors: z.array(z.object({
+    name: z.string(),
+    hex: z.string().regex(/^#[0-9A-F]{6}$/i),
+    usage: z.string(),
+  })),
+  fonts: z.object({
+    primary: z.string(),
+    secondary: z.string(),
+  }),
+  tagline: z.string().optional(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    // Require authentication
+    const user = await requireUser(); // Throws if not authenticated
+
+    // Validate input
+    const body = await request.json();
+    const validated = createBrandKitSchema.parse(body);
+
+    // Create brand kit (service layer handles RLS)
+    const brandKit = await createBrandKit(user.id, validated);
+
+    return NextResponse.json(brandKit, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    console.error('Failed to create brand kit:', error);
+    return NextResponse.json(
+      { error: 'Failed to create brand kit' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Database Migration Best Practices:**
+
+Use Supabase CLI for migrations (requires `SUPABASE_ACCESS_TOKEN`):
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Login with access token
+supabase login
+
+# Link to your project
+supabase link --project-ref abtunlcxubymirloekto
+
+# Create a new migration
+supabase migration new add_brand_kits_table
+
+# Edit the migration file in supabase/migrations/
+
+# Apply migrations
+supabase db push
+
+# Or run SQL directly via CLI
+supabase db execute --file ./supabase-schema.sql
+```
+
+**Testing Database Operations:**
+
+```typescript
+// Mock Supabase client for tests
+import { createClient } from '@/lib/supabase/server';
+
+jest.mock('@/lib/supabase/server', () => ({
+  createClient: jest.fn(),
+  createAdminClient: jest.fn(),
+  requireUser: jest.fn(),
+}));
+
+describe('createBrandKit', () => {
+  it('should create brand kit with RLS', async () => {
+    const mockSupabase = {
+      from: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({
+        data: { id: '123', business_name: 'Test' },
+        error: null,
+      }),
+    };
+
+    (createClient as jest.Mock).mockResolvedValue(mockSupabase);
+
+    const result = await createBrandKit('user-123', {
+      businessName: 'Test Business',
+      logoUrl: 'https://example.com/logo.png',
+      colors: [],
+      fonts: { primary: 'Inter', secondary: 'Lora' },
+    });
+
+    expect(result.id).toBe('123');
+    expect(mockSupabase.from).toHaveBeenCalledWith('brand_kits');
+  });
+});
+```
 
 ---
 
