@@ -1,11 +1,39 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Sparkles, Palette, Users, Zap, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { createClient } from '@/lib/supabase/client';
 
 export default function HomePage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // User is logged in, redirect to dashboard
+        router.replace('/dashboard');
+      } else {
+        // User is not logged in, show landing page
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+  }, [router, supabase.auth]);
+
+  // Show nothing while checking authentication
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}

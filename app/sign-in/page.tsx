@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -13,8 +13,24 @@ export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // User is already logged in, redirect to dashboard
+        router.replace('/dashboard');
+      } else {
+        setChecking(false);
+      }
+    };
+
+    checkUser();
+  }, [router, supabase.auth]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +56,10 @@ export default function SignInPage() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return null;
+  }
 
   return (
     <div className="container flex items-center justify-center min-h-screen py-12">

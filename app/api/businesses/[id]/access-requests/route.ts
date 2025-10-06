@@ -1,0 +1,118 @@
+/**
+ * Business Access Requests API
+ *
+ * POST /api/businesses/[id]/access-requests - Create access request
+ * GET /api/businesses/[id]/access-requests - List pending access requests
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { createClient } from '@/lib/supabase/server';
+import {
+  canManageTeam,
+  createAccessRequest,
+  getBusinessAccessRequests,
+} from '@/lib/services/team-service';
+
+const createAccessRequestSchema = z.object({
+  requested_role: z.enum(['editor', 'viewer']),
+  message: z.string().max(500).optional(),
+});
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const businessId = params.id;
+
+    // Validate request body
+    const body = await request.json();
+    const validated = createAccessRequestSchema.parse(body);
+
+    // Create access request
+    const accessRequest = await createAccessRequest(
+      businessId,
+      user.id,
+      validated.requested_role,
+      validated.message
+    );
+
+    // TODO: Send notification to business owner/admins
+    // await notifyBusinessOwner(accessRequest);
+
+    return NextResponse.json(accessRequest, { status: 201 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
+    console.error('Failed to create access request:', error);
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to create access request',
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const businessId = params.id;
+
+    // Check permissions (only owner/admin can view)
+    const hasPermission = await canManageTeam(user.id, businessId);
+
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'You do not have permission to view access requests' },
+        { status: 403 }
+      );
+    }
+
+    // Get access requests
+    const requests = await getBusinessAccessRequests(businessId);
+
+    return NextResponse.json({ requests });
+  } catch (error) {
+    console.error('Failed to fetch access requests:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch access requests' },
+      { status: 500 }
+    );
+  }
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,24 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // User is already logged in, redirect to dashboard
+        router.replace('/dashboard');
+      } else {
+        setChecking(false);
+      }
+    };
+
+    checkUser();
+  }, [router, supabase.auth]);
 
   const handleAccountTypeSelect = (type: 'personal' | 'business') => {
     setAccountType(type);
@@ -64,6 +80,10 @@ export default function SignUpPage() {
       setLoading(false);
     }
   };
+
+  if (checking) {
+    return null;
+  }
 
   if (step === 'account-type') {
     return (

@@ -61,7 +61,13 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Refresh session if expired
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Redirect authenticated users to dashboard from public pages
+  const publicPages = ['/', '/sign-in', '/sign-up'];
+  if (user && publicPages.includes(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
 
   return response;
 }
