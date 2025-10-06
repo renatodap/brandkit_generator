@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { canManageTeam, revokeInvitation } from '@/lib/services/team-service';
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string; invitationId: string } }
 ) {
   try {

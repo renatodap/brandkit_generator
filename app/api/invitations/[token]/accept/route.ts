@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { acceptInvitation } from '@/lib/services/team-service';
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {

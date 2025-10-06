@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { declineInvitation } from '@/lib/services/team-service';
 
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {
