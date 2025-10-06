@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
-import { brandKitInputSchema } from '@/lib/validations';
+import { enhancedBrandKitInputSchema } from '@/lib/validations';
 import { generateColorPalette, getFontPairing, generateTagline } from '@/lib/api';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
 import {
-  generateLogoWithWorkflow,
-  isOpenRouterConfigured,
-  OpenRouterError,
-} from '@/lib/api/openrouter';
+  generateLogoWithGroq,
+  isGroqConfigured,
+  GroqLogoError,
+} from '@/lib/api/groq-logo';
 import {
   extractLogoSymbols,
   extractColorPreferences,
@@ -16,6 +16,7 @@ import {
   generateFontJustification,
 } from '@/lib/api/groq';
 import { svgToDataURL, normalizeSVG, optimizeSVG } from '@/lib/api/logo-utils';
+import { enhancePrompt } from '@/lib/utils/prompt-enhancement';
 import type { BrandKit } from '@/types';
 
 /**
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body = await request.json();
-    const validationResult = brandKitInputSchema.safeParse(body);
+    const validationResult = enhancedBrandKitInputSchema.safeParse(body);
 
     if (!validationResult.success) {
       return NextResponse.json(
@@ -53,10 +54,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { businessName, businessDescription, industry } = validationResult.data;
+    const {
+      businessName,
+      businessDescription,
+      industry,
+      notes,
+      logoOption,
+      logoBase64,
+      colorOption,
+      existingColors,
+      fontOption,
+      existingFonts,
+      advancedOptions,
+    } = validationResult.data;
 
     // Log generation start
     console.log('🎨 Starting brand kit generation for:', businessName);
+    console.log('📝 Options:', { logoOption, colorOption, fontOption, hasNotes: !!notes, hasAdvancedOptions: !!advancedOptions });
 
     // Step 1: Extract brand insights in parallel
     console.log('🧠 Extracting brand insights...');
@@ -102,13 +116,22 @@ export async function POST(request: NextRequest) {
             luxurious: 0.3,
           };
 
-    // Step 2: Generate color palette first (needed for logo generation)
-    console.log('🎨 Generating color palette...');
+    // Step 2: Handle color palette (use existing or generate)
+    console.log('🎨 Processing color palette...');
     const colorPaletteResult = await (async () => {
+      if (colorOption === 'existing' && existingColors) {
+        console.log('✅ Using existing color palette');
+        return existingColors;
+      }
+
+      console.log('🎨 Generating color palette...');
       try {
+        // Enhance the generation with notes and advanced options
+        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+
         return await generateColorPalette({
           businessName,
-          description: businessDescription,
+          description: enhancedDescription,
           industry,
         });
       } catch (error) {
@@ -126,20 +149,40 @@ export async function POST(request: NextRequest) {
     // Step 3: Generate core brand assets in parallel
     console.log('🎨 Generating brand assets...');
     const [logoResult, fontPairingResult, taglineResult] = await Promise.allSettled([
-      // Logo generation with OpenRouter multi-model workflow
+      // Logo generation/upload/skip
       (async () => {
-        if (!isOpenRouterConfigured()) {
-          throw new OpenRouterError(
-            'OPENROUTER_API_KEY not configured. Please add it to your environment variables.',
+        if (logoOption === 'skip') {
+          console.log('⏭️  Skipping logo generation');
+          return null;
+        }
+
+        if (logoOption === 'upload' && logoBase64) {
+          console.log('📤 Using uploaded logo');
+          return {
+            url: logoBase64,
+            svgCode: undefined,
+            template: 'user-uploaded',
+            quality: { score: 10, feedback: 'User-uploaded logo' },
+          };
+        }
+
+        // Generate logo
+        if (!isGroqConfigured()) {
+          throw new GroqLogoError(
+            'GROQ_API_KEY not configured. Please add it to your environment variables.',
             500,
             'MISSING_API_KEY'
           );
         }
 
-        console.log('🖼️  Generating SVG logo with multi-model workflow...');
-        const result = await generateLogoWithWorkflow({
+        console.log('🖼️  Generating SVG logo with Groq (Llama 3.3 + 3.1)...');
+
+        // Enhance description with notes and advanced options
+        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+
+        const result = await generateLogoWithGroq({
           businessName,
-          description: businessDescription,
+          description: enhancedDescription,
           industry,
           symbols,
           colorPalette: {
@@ -163,47 +206,78 @@ export async function POST(request: NextRequest) {
           quality: result.quality,
         };
       })(),
-      // Font pairing with personality
-      getFontPairing({
-        industry,
-        businessName,
-        description: businessDescription,
-      }),
-      // Tagline
-      generateTagline({
-        businessName,
-        description: businessDescription,
-        industry,
-      }),
+      // Font pairing (use existing or generate)
+      (async () => {
+        if (fontOption === 'existing' && existingFonts) {
+          console.log('✅ Using existing fonts');
+          return {
+            primary: {
+              name: existingFonts.primary.name,
+              family: `${existingFonts.primary.name}, ${existingFonts.primary.category}`,
+              url:
+                existingFonts.primary.url ||
+                `https://fonts.googleapis.com/css2?family=${existingFonts.primary.name.replace(/\s+/g, '+')}:wght@400;500;600;700&display=swap`,
+              category: existingFonts.primary.category,
+            },
+            secondary: {
+              name: existingFonts.secondary.name,
+              family: `${existingFonts.secondary.name}, ${existingFonts.secondary.category}`,
+              url:
+                existingFonts.secondary.url ||
+                `https://fonts.googleapis.com/css2?family=${existingFonts.secondary.name.replace(/\s+/g, '+')}:wght@400;500;600;700&display=swap`,
+              category: existingFonts.secondary.category,
+            },
+          };
+        }
+
+        console.log('🔤 Generating font pairing...');
+        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+
+        return getFontPairing({
+          industry,
+          businessName,
+          description: enhancedDescription,
+        });
+      })(),
+      // Tagline (always generate with enhancement)
+      (async () => {
+        console.log('✍️  Generating tagline...');
+        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+
+        return generateTagline({
+          businessName,
+          description: enhancedDescription,
+          industry,
+        });
+      })(),
     ]);
 
     // Handle logo generation result
-    let logoUrl = '';
+    let logoUrl: string | null = null;
     let logoSvgCode = '';
     let logoQuality = { score: 0, feedback: '' };
 
-    if (logoResult.status === 'fulfilled' && logoResult.value) {
-      logoUrl = logoResult.value.url;
-      logoSvgCode = logoResult.value.svgCode;
-      logoQuality = logoResult.value.quality;
-      console.log(`✅ Logo generated successfully (Quality: ${logoQuality.score}/10)`);
-    } else {
-      console.error(
-        '❌ Logo generation failed:',
-        logoResult.status === 'rejected' ? logoResult.reason : 'Unknown error'
-      );
-      // Return error if OpenRouter fails
+    if (logoResult.status === 'fulfilled') {
+      if (logoResult.value === null) {
+        // Logo was skipped
+        console.log('⏭️  Logo skipped per user request');
+      } else {
+        logoUrl = logoResult.value.url;
+        logoSvgCode = logoResult.value.svgCode || '';
+        logoQuality = logoResult.value.quality;
+        console.log(`✅ Logo processed successfully (Quality: ${logoQuality.score}/10)`);
+      }
+    } else if (logoOption === 'generate') {
+      // Only return error if logo generation was requested but failed
+      console.error('❌ Logo generation failed:', logoResult.reason);
       const errorMessage =
-        logoResult.status === 'rejected' && logoResult.reason instanceof Error
-          ? logoResult.reason.message
-          : 'Logo generation failed';
+        logoResult.reason instanceof Error ? logoResult.reason.message : 'Logo generation failed';
 
       return NextResponse.json(
         {
           error: 'Logo generation failed',
           message: errorMessage,
-          details:
-            'Please ensure OPENROUTER_API_KEY is configured in your environment variables.',
+          details: 'Please ensure GROQ_API_KEY is configured in your environment variables.',
         },
         { status: 500 }
       );
@@ -237,12 +311,18 @@ export async function POST(request: NextRequest) {
         ? taglineResult.value
         : `${businessName} - Excellence in ${industry}`;
 
-    // Step 4: Generate justifications in parallel
+    // Step 4: Generate justifications in parallel (with enhanced context)
     console.log('📝 Generating justifications...');
+    const enhancedDescriptionForJustifications = enhancePrompt(
+      businessDescription,
+      notes,
+      advancedOptions
+    );
+
     const [colorJustificationResult, fontJustificationResult] = await Promise.allSettled([
       generateColorJustification({
         businessName,
-        description: businessDescription,
+        description: enhancedDescriptionForJustifications,
         industry,
         colors: {
           primary: colorPalette.primary,
@@ -254,7 +334,7 @@ export async function POST(request: NextRequest) {
       }),
       generateFontJustification({
         businessName,
-        description: businessDescription,
+        description: enhancedDescriptionForJustifications,
         industry,
         fonts: {
           primary: {
@@ -285,17 +365,25 @@ export async function POST(request: NextRequest) {
       businessName,
       businessDescription,
       industry,
-      logo: {
-        url: logoUrl,
-        svgCode: logoSvgCode,
-      },
+      logo: logoUrl
+        ? {
+            url: logoUrl,
+            svgCode: logoSvgCode,
+          }
+        : null,
       colors: colorPalette,
       fonts: fontPairing,
       tagline: brandTagline,
       justifications: {
-        colors: colorJustification,
-        fonts: fontJustification,
-        logo: logoQuality.feedback,
+        colors:
+          colorOption === 'existing' && existingColors
+            ? 'Using your provided color palette'
+            : colorJustification,
+        fonts:
+          fontOption === 'existing' && existingFonts
+            ? 'Using your provided fonts'
+            : fontJustification,
+        logo: logoOption === 'skip' ? 'Logo generation skipped' : logoQuality.feedback,
       },
       generatedAt: new Date().toISOString(),
     };

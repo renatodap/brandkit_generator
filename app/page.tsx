@@ -14,7 +14,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { brandKitInputSchema, type BrandKitInputType } from '@/lib/validations';
+import { LogoControl } from '@/components/brand-kit-form/logo-control';
+import { ColorPaletteControl } from '@/components/brand-kit-form/color-palette-control';
+import { TypographyControl } from '@/components/brand-kit-form/typography-control';
+import { AdvancedOptions } from '@/components/brand-kit-form/advanced-options';
+
+import { enhancedBrandKitInputSchema, type EnhancedBrandKitInputType } from '@/lib/validations';
 import type { BrandKit } from '@/types';
 
 export default function HomePage() {
@@ -27,18 +32,33 @@ export default function HomePage() {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<BrandKitInputType>({
-    resolver: zodResolver(brandKitInputSchema),
+  } = useForm<EnhancedBrandKitInputType>({
+    resolver: zodResolver(enhancedBrandKitInputSchema),
     defaultValues: {
       businessName: '',
       businessDescription: '',
       industry: 'tech',
+      notes: '',
+      logoOption: 'generate',
+      logoBase64: undefined,
+      colorOption: 'generate',
+      existingColors: undefined,
+      fontOption: 'generate',
+      existingFonts: undefined,
+      advancedOptions: undefined,
     },
   });
 
   const selectedIndustry = watch('industry');
+  const logoOption = watch('logoOption');
+  const logoBase64 = watch('logoBase64');
+  const colorOption = watch('colorOption');
+  const existingColors = watch('existingColors');
+  const fontOption = watch('fontOption');
+  const existingFonts = watch('existingFonts');
+  const advancedOptions = watch('advancedOptions');
 
-  const onSubmit = async (data: BrandKitInputType) => {
+  const onSubmit = async (data: EnhancedBrandKitInputType) => {
     setIsGenerating(true);
 
     try {
@@ -171,7 +191,7 @@ export default function HomePage() {
               </Label>
               <Select
                 value={selectedIndustry}
-                onValueChange={(value) => setValue('industry', value as BrandKitInputType['industry'])}
+                onValueChange={(value) => setValue('industry', value as EnhancedBrandKitInputType['industry'])}
               >
                 <SelectTrigger id="industry" aria-label="Select industry">
                   <SelectValue placeholder="Select an industry" />
@@ -193,6 +213,75 @@ export default function HomePage() {
                 </p>
               )}
             </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">
+                Notes (Optional)
+              </Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any specific details about your brand vision... e.g., 'Use ocean imagery', 'Avoid red colors', 'Target Gen Z audience'"
+                rows={3}
+                {...register('notes')}
+                aria-invalid={errors.notes ? 'true' : 'false'}
+                aria-describedby={errors.notes ? 'notes-error' : undefined}
+              />
+              {errors.notes && (
+                <p id="notes-error" className="text-sm text-destructive" role="alert">
+                  {errors.notes.message}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                These notes will guide all AI generation (logo, colors, fonts, tagline)
+              </p>
+            </div>
+
+            {/* Logo Control */}
+            <LogoControl
+              value={logoOption}
+              onChange={(value) => setValue('logoOption', value)}
+              onFileChange={(base64) => setValue('logoBase64', base64 || undefined)}
+              logoBase64={logoBase64}
+              error={errors.logoBase64?.message}
+            />
+
+            {/* Color Palette Control */}
+            <ColorPaletteControl
+              value={colorOption}
+              onChange={(value) => setValue('colorOption', value)}
+              colors={existingColors}
+              onColorsChange={(colors) => setValue('existingColors', colors)}
+              errors={{
+                primary: errors.existingColors?.primary?.message,
+                secondary: errors.existingColors?.secondary?.message,
+                accent: errors.existingColors?.accent?.message,
+                neutral: errors.existingColors?.neutral?.message,
+                background: errors.existingColors?.background?.message,
+              }}
+            />
+
+            {/* Typography Control */}
+            <TypographyControl
+              value={fontOption}
+              onChange={(value) => setValue('fontOption', value)}
+              fonts={existingFonts}
+              onFontsChange={(fonts) => setValue('existingFonts', fonts)}
+              errors={{
+                primaryName: errors.existingFonts?.primary?.name?.message,
+                primaryCategory: errors.existingFonts?.primary?.category?.message,
+                primaryUrl: errors.existingFonts?.primary?.url?.message,
+                secondaryName: errors.existingFonts?.secondary?.name?.message,
+                secondaryCategory: errors.existingFonts?.secondary?.category?.message,
+                secondaryUrl: errors.existingFonts?.secondary?.url?.message,
+              }}
+            />
+
+            {/* Advanced Options */}
+            <AdvancedOptions
+              value={advancedOptions}
+              onChange={(value) => setValue('advancedOptions', value)}
+            />
 
             {/* Submit Button */}
             <Button
@@ -217,7 +306,8 @@ export default function HomePage() {
 
             {/* Disclaimer */}
             <p className="text-xs text-muted-foreground text-center">
-              ⚠️ AI-generated content should be reviewed before commercial use. Generation may take 10-30 seconds.
+              ⚠️ AI-generated content should be reviewed before commercial use.
+              {logoOption === 'generate' ? ' Logo generation may take 10-30 seconds.' : ' Generation may take 5-15 seconds.'}
             </p>
           </form>
         </CardContent>

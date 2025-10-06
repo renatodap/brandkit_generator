@@ -59,7 +59,7 @@ export interface BrandKit {
   logo: {
     url: string;
     svgCode?: string;
-  };
+  } | null;
   colors: ColorPalette;
   fonts: FontPairing;
   tagline: string;
@@ -132,4 +132,120 @@ export interface DownloadBundle {
   logoBlob: Blob;
   brandKitInfo: string;
   htmlPreview: string;
+}
+
+/**
+ * Logo generation options
+ */
+export type LogoOption = 'generate' | 'upload' | 'skip';
+
+/**
+ * Color palette generation options
+ */
+export type ColorOption = 'generate' | 'existing';
+
+/**
+ * Typography generation options
+ */
+export type FontOption = 'generate' | 'existing';
+
+/**
+ * Style preferences for brand generation
+ */
+export type StylePreference =
+  | 'modern'
+  | 'classic'
+  | 'minimalist'
+  | 'bold'
+  | 'playful'
+  | 'elegant'
+  | 'vintage'
+  | 'futuristic';
+
+/**
+ * Color mood preferences
+ */
+export type ColorMood =
+  | 'vibrant'
+  | 'muted'
+  | 'warm'
+  | 'cool'
+  | 'monochrome'
+  | 'pastel'
+  | 'earth'
+  | 'neon';
+
+/**
+ * Target audience types
+ */
+export type TargetAudience =
+  | 'b2b'
+  | 'b2c'
+  | 'gen-z'
+  | 'millennial'
+  | 'gen-x'
+  | 'boomer'
+  | 'luxury'
+  | 'budget';
+
+/**
+ * Brand tone preferences
+ */
+export type BrandTone =
+  | 'professional'
+  | 'playful'
+  | 'serious'
+  | 'friendly'
+  | 'authoritative'
+  | 'approachable'
+  | 'innovative'
+  | 'traditional';
+
+/**
+ * Advanced generation options
+ */
+export interface AdvancedOptions {
+  styles?: StylePreference[];
+  colorMood?: ColorMood;
+  targetAudience?: TargetAudience;
+  brandTones?: BrandTone[];
+}
+
+/**
+ * Enhanced input for brand kit generation with user control
+ */
+export interface EnhancedBrandKitInput {
+  // Base fields
+  businessName: string;
+  businessDescription: string;
+  industry: Industry;
+
+  // Optional contextual notes
+  notes?: string;
+
+  // Logo options
+  logoOption: LogoOption;
+  logoBase64?: string; // Base64 encoded file when logoOption === 'upload'
+
+  // Color palette options
+  colorOption: ColorOption;
+  existingColors?: ColorPalette;
+
+  // Typography options
+  fontOption: FontOption;
+  existingFonts?: {
+    primary: {
+      name: string;
+      category: 'serif' | 'sans-serif' | 'display' | 'handwriting' | 'monospace';
+      url?: string;
+    };
+    secondary: {
+      name: string;
+      category: 'serif' | 'sans-serif' | 'display' | 'handwriting' | 'monospace';
+      url?: string;
+    };
+  };
+
+  // Advanced options
+  advancedOptions?: AdvancedOptions;
 }

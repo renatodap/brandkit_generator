@@ -92,8 +92,8 @@ export default function ResultsPage() {
     try {
       const zip = new JSZip();
 
-      // Add logo file (SVG or PNG)
-      if (brandKit.logo.url) {
+      // Add logo file (SVG or PNG) if exists
+      if (brandKit.logo?.url) {
         try {
           if (brandKit.logo.svgCode) {
             // Save SVG source code
@@ -118,6 +118,8 @@ export default function ResultsPage() {
           console.error('Failed to add logo to download:', error);
           toast.warning('Logo could not be included in the download');
         }
+      } else {
+        console.log('No logo to include in download');
       }
 
       // Create brand kit info text file
@@ -424,9 +426,9 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
             <CardDescription className="text-lg">{brandKit.tagline}</CardDescription>
           </CardHeader>
           <CardContent>
-            {brandKit.logo.url && (
+            {brandKit.logo?.url ? (
               <>
-                <div className="flex justify-center p-8 bg-muted rounded-lg">
+                <div className="flex justify-center p-8 bg-muted rounded-lg" data-testid="logo-preview">
                   <img
                     src={brandKit.logo.url}
                     alt={`${brandKit.businessName} logo`}
@@ -442,6 +444,14 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
                   </div>
                 )}
               </>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 bg-muted rounded-lg text-muted-foreground">
+                <p className="text-sm">
+                  {brandKit.justifications?.logo === 'Logo generation skipped'
+                    ? 'Logo generation was skipped'
+                    : 'No logo available'}
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
