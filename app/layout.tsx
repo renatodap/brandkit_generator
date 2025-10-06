@@ -124,55 +124,57 @@ export default function RootLayout({
                   <span className="text-xl font-bold">Persimmon Labs</span>
                 </a>
               </div>
-              <nav className="ml-auto flex items-center space-x-4">
-                <a
-                  href="/tools/brand-kit"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Brand Kit
-                </a>
-                <a
-                  href="/privacy"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Privacy
-                </a>
-                <a
-                  href="/terms"
-                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
-                >
-                  Terms
-                </a>
+              <nav className="ml-auto flex items-center">
                 <HeaderAuth />
               </nav>
             </div>
           </header>
           <main className="flex-1">{children}</main>
-          <footer className="border-t py-6 md:py-0">
-            <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
-              <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                © 2025 Persimmon Labs. Powered by AI. Generated assets should be reviewed
-                before commercial use.
-              </p>
-              <p className="text-center text-sm text-muted-foreground">
-                <a
-                  href="https://huggingface.co"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-4 hover:text-primary"
-                >
-                  Hugging Face
-                </a>{' '}
-                •{' '}
-                <a
-                  href="https://fonts.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline underline-offset-4 hover:text-primary"
-                >
-                  Google Fonts
-                </a>
-              </p>
+          <footer className="border-t py-8">
+            <div className="container">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                {/* Copyright and AI Disclaimer */}
+                <div className="text-center md:text-left">
+                  <p className="text-sm text-muted-foreground">
+                    © 2025 Persimmon Labs. All rights reserved.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    AI-generated assets should be reviewed before commercial use.
+                  </p>
+                </div>
+
+                {/* Links */}
+                <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
+                  <a
+                    href="/privacy"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Privacy Policy
+                  </a>
+                  <a
+                    href="/terms"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Terms of Service
+                  </a>
+                  <a
+                    href="https://huggingface.co"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Hugging Face
+                  </a>
+                  <a
+                    href="https://fonts.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Google Fonts
+                  </a>
+                </div>
+              </div>
             </div>
           </footer>
         </div>
