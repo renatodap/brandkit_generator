@@ -417,8 +417,6 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
   const updateData: Record<string, any> = {};
   if (data.businessName !== undefined) updateData['business_name'] = data.businessName;
   if (data.isFavorite !== undefined) updateData['is_favorite'] = data.isFavorite;
-  if (data.isPublished !== undefined) updateData['is_published'] = data.isPublished;
-  if (data.tags !== undefined) updateData['tags'] = data.tags;
 
   const { data: updated, error } = await supabase
     .from('brand_kits')
