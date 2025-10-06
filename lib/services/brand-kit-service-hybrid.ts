@@ -261,7 +261,6 @@ export async function createBrandKit(context: BrandKitContext, data: CreateBrand
       fonts: data.fonts as any,
       tagline: data.tagline || null,
       design_justification: data.designJustification || null,
-      tags: data.tags || [],
     })
     .select()
     .single();
