@@ -10,6 +10,17 @@ import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { BusinessCard } from '@/components/business-card';
 import { CreateBusinessDialog } from '@/components/create-business-dialog';
+import { EditBusinessDialog } from '@/components/edit-business-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import type { Business } from '@/types';
 
 interface BusinessWithBrandKit extends Business {
@@ -21,6 +32,10 @@ export default function DashboardPage() {
   const [businesses, setBusinesses] = useState<BusinessWithBrandKit[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
+  const [deletingBusiness, setDeletingBusiness] = useState<BusinessWithBrandKit | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -84,6 +99,51 @@ export default function DashboardPage() {
     toast.success('Business created! Now generate a brand kit for it.');
   };
 
+  const handleEdit = (business: Business) => {
+    setEditingBusiness(business);
+    setShowEditDialog(true);
+  };
+
+  const handleBusinessUpdated = (updatedBusiness: Business) => {
+    setBusinesses((prev) =>
+      prev.map((b) =>
+        b.id === updatedBusiness.id
+          ? { ...b, ...updatedBusiness }
+          : b
+      )
+    );
+    toast.success('Business updated successfully!');
+  };
+
+  const handleDelete = (business: BusinessWithBrandKit) => {
+    setDeletingBusiness(business);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingBusiness) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/businesses/${deletingBusiness.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete business');
+      }
+
+      setBusinesses((prev) => prev.filter((b) => b.id !== deletingBusiness.id));
+      toast.success('Business deleted successfully');
+      setDeletingBusiness(null);
+    } catch (error) {
+      console.error('Error deleting business:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete business');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container py-12">
@@ -144,6 +204,8 @@ export default function DashboardPage() {
               business={business}
               onGenerateKit={handleGenerateKit}
               onViewKit={handleViewKit}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
             />
           ))}
         </div>
@@ -154,6 +216,40 @@ export default function DashboardPage() {
         onOpenChange={setShowCreateDialog}
         onSuccess={handleBusinessCreated}
       />
+
+      <EditBusinessDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        business={editingBusiness}
+        onSuccess={handleBusinessUpdated}
+      />
+
+      <AlertDialog open={!!deletingBusiness} onOpenChange={(open) => !open && setDeletingBusiness(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Business</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{deletingBusiness?.name}&quot;?
+              {deletingBusiness?.has_brand_kit && (
+                <span className="block mt-2 font-semibold text-destructive">
+                  ⚠️ This will also permanently delete the associated brand kit.
+                </span>
+              )}
+              <span className="block mt-2">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

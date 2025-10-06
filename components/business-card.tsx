@@ -8,7 +8,14 @@
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Eye, Building2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Sparkles, Eye, Building2, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import type { Business } from '@/types';
 
 interface BusinessCardProps {
@@ -18,9 +25,11 @@ interface BusinessCardProps {
   };
   onGenerateKit: (businessId: string) => void;
   onViewKit: (brandKitId: string) => void;
+  onEdit: (business: Business) => void;
+  onDelete: (business: Business) => void;
 }
 
-export function BusinessCard({ business, onGenerateKit, onViewKit }: BusinessCardProps) {
+export function BusinessCard({ business, onGenerateKit, onViewKit, onEdit, onDelete }: BusinessCardProps) {
   return (
     <Card className="group hover:shadow-lg transition-shadow h-full flex flex-col">
       <CardContent className="pt-6 flex-1">
@@ -35,6 +44,36 @@ export function BusinessCard({ business, onGenerateKit, onViewKit }: BusinessCar
           ) : (
             <Building2 className="h-16 w-16 text-muted-foreground/30" />
           )}
+
+          {/* Actions Dropdown */}
+          <div className="absolute top-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 bg-background/80 backdrop-blur hover:bg-background"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(business)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Business
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(business)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Business
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Business Info */}
