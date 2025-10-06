@@ -54,11 +54,6 @@ export default function SignUpPage() {
 
       toast.success('Account created! Please check your email to verify.');
 
-      // Redirect based on account type
-      const redirectPath = accountType === 'personal'
-        ? '/onboarding/personal'
-        : '/onboarding/business';
-
       // Store account type for onboarding
       localStorage.setItem('pendingAccountType', accountType);
 
