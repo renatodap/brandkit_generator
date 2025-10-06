@@ -81,7 +81,7 @@ export default function SignInPage() {
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
             <p className="text-sm text-center text-muted-foreground">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <a href="/sign-up" className="text-primary hover:underline">
                 Sign up
               </a>

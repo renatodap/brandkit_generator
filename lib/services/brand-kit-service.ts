@@ -5,15 +5,14 @@
  * with proper error handling and type safety.
  */
 
-import { getSupabaseClient, getSupabaseAdminClient } from '../supabase';
+import { createClient, createAdminClient } from '../supabase/server';
 import type { CreateBrandKitInput, UpdateBrandKitInput, ListBrandKitsQuery } from '../validations/brand-kit';
-import { ForbiddenError } from '../auth';
 
 /**
  * Create a new brand kit for a user
  */
 export async function createBrandKit(userId: string, data: CreateBrandKitInput) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   const { data: brandKit, error } = await supabase
     .from('brand_kits')
@@ -53,7 +52,7 @@ export async function createBrandKit(userId: string, data: CreateBrandKitInput) 
  * Get all brand kits for a user with filtering and pagination
  */
 export async function getBrandKits(userId: string, query: ListBrandKitsQuery = { limit: 50, offset: 0, sort: 'created_at', order: 'desc' }) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   let queryBuilder = supabase
     .from('brand_kits')
@@ -90,7 +89,7 @@ export async function getBrandKits(userId: string, query: ListBrandKitsQuery = {
  * Get a single brand kit by ID
  */
 export async function getBrandKitById(brandKitId: string, userId: string | null = null) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('brand_kits')
@@ -108,7 +107,7 @@ export async function getBrandKitById(brandKitId: string, userId: string | null 
 
   // Check ownership if userId provided
   if (userId && data.user_id !== userId) {
-    throw new ForbiddenError('You do not have permission to access this brand kit');
+    throw new Error('You do not have permission to access this brand kit');
   }
 
   // Increment view count
@@ -123,7 +122,7 @@ export async function getBrandKitById(brandKitId: string, userId: string | null 
  * Update a brand kit (e.g., favorite status, business name)
  */
 export async function updateBrandKit(brandKitId: string, userId: string, data: UpdateBrandKitInput) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   // First check ownership
   const existing = await getBrandKitById(brandKitId, userId);
@@ -161,7 +160,7 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
  * Delete a brand kit
  */
 export async function deleteBrandKit(brandKitId: string, userId: string) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   // First check ownership
   const existing = await getBrandKitById(brandKitId, userId);
@@ -187,7 +186,7 @@ export async function deleteBrandKit(brandKitId: string, userId: string) {
  * Create a share token for a brand kit
  */
 export async function createShareToken(brandKitId: string, userId: string, expiresInDays?: number) {
-  const supabase = await getSupabaseClient();
+  const supabase = await createClient();
 
   // First check ownership
   const brandKit = await getBrandKitById(brandKitId, userId);
@@ -228,7 +227,7 @@ export async function createShareToken(brandKitId: string, userId: string, expir
  * Get brand kit by share token (public access)
  */
 export async function getBrandKitByShareToken(token: string) {
-  const supabase = getSupabaseAdminClient(); // Use admin client for public access
+  const supabase = createAdminClient(); // Use admin client for public access
 
   // First get the share token
   const { data: shareToken, error: tokenError } = await supabase
@@ -288,7 +287,7 @@ function generateRandomToken(length: number = 32): string {
  * Sync or create user in database (called after Clerk signup)
  */
 export async function syncUserToDatabase(clerkUserId: string, email: string, firstName?: string, lastName?: string, profileImageUrl?: string) {
-  const supabase = getSupabaseAdminClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from('users')

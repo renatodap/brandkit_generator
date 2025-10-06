@@ -18,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: 'Brand kit not found' }, { status: 404 });
     }
 
-    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL}/share/${shareToken.token}`;
+    const shareUrl = `${process.env['NEXT_PUBLIC_APP_URL'] || 'http://localhost:3000'}/share/${shareToken.token}`;
 
     return NextResponse.json({
       shareUrl,

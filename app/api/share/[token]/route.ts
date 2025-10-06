@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getBrandKitByShareToken } from '@/lib/services/brand-kit-service';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { token: string } }
 ) {
   try {

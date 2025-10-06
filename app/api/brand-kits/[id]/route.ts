@@ -4,7 +4,7 @@ import { getBrandKitById, updateBrandKit, deleteBrandKit } from '@/lib/services/
 import { updateBrandKitSchema } from '@/lib/validations/brand-kit';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -57,7 +57,7 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {

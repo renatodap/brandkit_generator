@@ -413,7 +413,7 @@ export async function POST(request: NextRequest) {
           businessDescription,
           industry,
           logoUrl,
-          logoSvg: logoSvgCode || null,
+          logoSvg: logoSvgCode || undefined,
           colors: colorsArray,
           fonts: {
             primary: fontPairing.primary.name,
