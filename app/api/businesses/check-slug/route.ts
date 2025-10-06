@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/supabase/server';
 import { isSlugAvailable } from '@/lib/services/business-service';
 
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/businesses/check-slug?slug=my-business&excludeId=uuid
  * Check if a slug is available for the authenticated user

@@ -3,6 +3,9 @@ import { requireUser } from '@/lib/supabase/server';
 import { createBrandKit, getBrandKits } from '@/lib/services/brand-kit-service';
 import { createBrandKitSchema, listBrandKitsQuerySchema } from '@/lib/validations/brand-kit';
 
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireUser();

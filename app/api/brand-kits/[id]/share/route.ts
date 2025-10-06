@@ -3,6 +3,9 @@ import { requireUser } from '@/lib/supabase/server';
 import { createShareToken } from '@/lib/services/brand-kit-service';
 import { createShareTokenSchema } from '@/lib/validations/brand-kit';
 
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -25,7 +25,7 @@ import { ProgressiveGeneration } from '@/components/progressive-generation';
 import { enhancedBrandKitInputSchema, type EnhancedBrandKitInputType } from '@/lib/validations';
 import type { BrandKit } from '@/types';
 
-export default function BrandKitGenerationPage() {
+function BrandKitGenerationPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const businessId = searchParams?.get('businessId');
@@ -445,5 +445,31 @@ export default function BrandKitGenerationPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function BrandKitGenerationPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <Skeleton className="h-10 w-3/4 mx-auto" />
+          <Skeleton className="h-6 w-1/2 mx-auto" />
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-full" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    }>
+      <BrandKitGenerationPageContent />
+    </Suspense>
   );
 }

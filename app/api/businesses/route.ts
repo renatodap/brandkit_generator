@@ -8,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser } from '@/lib/supabase/server';
 import { createBusiness, getBusinesses, getBusinessesWithBrandKits } from '@/lib/services/business-service';
+
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
 import { createBusinessSchema, listBusinessesSchema } from '@/lib/validations/business';
 
 /**

@@ -3,6 +3,9 @@ import { requireUser } from '@/lib/supabase/server';
 import { getBrandKitById, updateBrandKit, deleteBrandKit } from '@/lib/services/brand-kit-service';
 import { updateBrandKitSchema } from '@/lib/validations/brand-kit';
 
+// Force dynamic rendering - this route uses cookies for authentication
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
