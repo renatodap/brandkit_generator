@@ -14,8 +14,8 @@ import { getTextColor, formatFileName } from '@/lib/utils';
 export default function BrandKitResultsPage() {
   const router = useRouter();
   const params = useParams();
-  const companySlug = params.companySlug as string;
-  const brandKitId = params.id as string;
+  const companySlug = params['companySlug'] as string;
+  const brandKitId = params['id'] as string;
 
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);

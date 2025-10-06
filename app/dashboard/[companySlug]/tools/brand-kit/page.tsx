@@ -25,7 +25,7 @@ import type { BrandKit } from '@/types';
 export default function BrandKitToolPage() {
   const router = useRouter();
   const params = useParams();
-  const companySlug = params.companySlug as string;
+  const companySlug = params['companySlug'] as string;
   const [isGenerating, setIsGenerating] = useState(false);
 
   const {
