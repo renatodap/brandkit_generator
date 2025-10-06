@@ -36,14 +36,7 @@ export async function createBrandKit(userId: string, data: CreateBrandKitInput) 
     throw new Error(`Failed to create brand kit: ${error.message}`);
   }
 
-  // Increment user's total kits generated count
-  await supabase
-    .from('users')
-    .update({ total_kits_generated: supabase.rpc('increment', { row_id: userId }) })
-    .eq('clerk_user_id', userId)
-    .catch(() => {
-      // Ignore error if user doesn't exist yet (will be created by webhook)
-    });
+  // Note: User tracking removed - using Supabase auth.users instead
 
   return brandKit;
 }
@@ -110,10 +103,12 @@ export async function getBrandKitById(brandKitId: string, userId: string | null 
     throw new Error('You do not have permission to access this brand kit');
   }
 
-  // Increment view count
-  await supabase.rpc('increment_brand_kit_view_count', { kit_id: brandKitId }).catch(() => {
+  // Increment view count (ignore errors)
+  try {
+    await supabase.rpc('increment_brand_kit_view_count', { kit_id: brandKitId });
+  } catch {
     // Ignore error
-  });
+  }
 
   return data;
 }
@@ -133,11 +128,11 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
   const updateData: Record<string, any> = {};
 
   if (data.businessName !== undefined) {
-    updateData.business_name = data.businessName;
+    updateData['business_name'] = data.businessName;
   }
 
   if (data.isFavorite !== undefined) {
-    updateData.is_favorite = data.isFavorite;
+    updateData['is_favorite'] = data.isFavorite;
   }
 
   const { data: updated, error } = await supabase
