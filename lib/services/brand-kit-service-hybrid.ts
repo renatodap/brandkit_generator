@@ -395,8 +395,12 @@ export async function getBrandKitById(brandKitId: string, userId: string) {
     throw new Error('Forbidden: You do not have access to this brand kit');
   }
 
-  // Increment view count
-  await supabase.rpc('increment_brand_kit_view_count', { kit_id: brandKitId }).catch(() => {});
+  // Increment view count (ignore errors)
+  try {
+    await supabase.rpc('increment_brand_kit_view_count', { kit_id: brandKitId });
+  } catch (error) {
+    // Silently ignore view count increment errors
+  }
 
   return data as BrandKit;
 }
