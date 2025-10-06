@@ -115,7 +115,7 @@ export default function DashboardPage() {
             Manage and download your generated brand identities
           </p>
         </div>
-        <Button onClick={() => router.push('/')} size="lg">
+        <Button onClick={() => router.push('/tools/brand-kit')} size="lg">
           <Plus className="mr-2 h-4 w-4" />
           Create New
         </Button>
@@ -131,7 +131,7 @@ export default function DashboardPage() {
             <p className="text-muted-foreground">
               Create your first brand kit to get started. It only takes a few seconds!
             </p>
-            <Button onClick={() => router.push('/')} size="lg" className="mt-4">
+            <Button onClick={() => router.push('/tools/brand-kit')} size="lg" className="mt-4">
               <Plus className="mr-2 h-4 w-4" />
               Create Your First Brand Kit
             </Button>

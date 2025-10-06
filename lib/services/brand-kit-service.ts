@@ -9,15 +9,41 @@ import { createClient, createAdminClient } from '../supabase/server';
 import type { CreateBrandKitInput, UpdateBrandKitInput, ListBrandKitsQuery } from '../validations/brand-kit';
 
 /**
- * Create a new brand kit for a user
+ * Create a new brand kit for a business
+ *
+ * Note: The business must belong to the authenticated user (enforced by RLS policies)
  */
 export async function createBrandKit(userId: string, data: CreateBrandKitInput) {
   const supabase = await createClient();
 
+  // Verify that the business belongs to the user
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id, user_id')
+    .eq('id', data.businessId)
+    .eq('user_id', userId)
+    .single();
+
+  if (businessError || !business) {
+    throw new Error('Business not found or you do not have permission to create a brand kit for this business');
+  }
+
+  // Check if business already has a brand kit
+  const { data: existingKit } = await supabase
+    .from('brand_kits')
+    .select('id')
+    .eq('business_id', data.businessId)
+    .single();
+
+  if (existingKit) {
+    throw new Error('This business already has a brand kit. Each business can only have one brand kit.');
+  }
+
   const { data: brandKit, error } = await supabase
     .from('brand_kits')
     .insert({
-      user_id: userId,
+      business_id: data.businessId,
+      user_id: userId, // Still track user_id for compatibility
       business_name: data.businessName,
       business_description: data.businessDescription || null,
       industry: data.industry || null,
@@ -35,8 +61,6 @@ export async function createBrandKit(userId: string, data: CreateBrandKitInput) 
     console.error('Error creating brand kit:', error);
     throw new Error(`Failed to create brand kit: ${error.message}`);
   }
-
-  // Note: User tracking removed - using Supabase auth.users instead
 
   return brandKit;
 }
@@ -76,6 +100,41 @@ export async function getBrandKits(userId: string, query: ListBrandKitsQuery = {
     limit: query.limit,
     offset: query.offset,
   };
+}
+
+/**
+ * Get brand kit by business ID
+ */
+export async function getBrandKitByBusinessId(businessId: string, userId: string) {
+  const supabase = await createClient();
+
+  // Verify business ownership first
+  const { data: business, error: businessError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', userId)
+    .single();
+
+  if (businessError || !business) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from('brand_kits')
+    .select('*')
+    .eq('business_id', businessId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null; // Not found
+    }
+    console.error('Error fetching brand kit by business ID:', error);
+    throw new Error(`Failed to fetch brand kit: ${error.message}`);
+  }
+
+  return data;
 }
 
 /**

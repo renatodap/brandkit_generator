@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     const {
+      businessId,
       businessName,
       businessDescription,
       industry,
@@ -409,6 +410,7 @@ export async function POST(request: NextRequest) {
         ];
 
         const savedBrandKit = await createBrandKit(user.id, {
+          businessId,
           businessName,
           businessDescription,
           industry,

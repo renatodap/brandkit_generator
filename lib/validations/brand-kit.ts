@@ -24,6 +24,7 @@ export const fontSchema = z.object({
 
 // Create brand kit schema
 export const createBrandKitSchema = z.object({
+  businessId: z.string().uuid('Business ID must be a valid UUID'),
   businessName: z
     .string()
     .min(1, 'Business name is required')

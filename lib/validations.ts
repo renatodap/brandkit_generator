@@ -202,6 +202,9 @@ export const existingFontsSchema = z.object({
  */
 export const enhancedBrandKitInputSchema = z
   .object({
+    // Business ID (required for authenticated users creating brand kits)
+    businessId: z.string().uuid('Business ID must be a valid UUID'),
+
     // Base fields
     businessName: z
       .string()

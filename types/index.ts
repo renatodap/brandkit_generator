@@ -12,6 +12,21 @@ export type Industry =
   | 'other';
 
 /**
+ * Business entity
+ * Users can create multiple businesses, each with one brand kit
+ */
+export interface Business {
+  id: string;
+  user_id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  industry?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * Input for brand kit generation
  */
 export interface BrandKitInput {
@@ -54,6 +69,7 @@ export interface FontPairing {
  */
 export interface BrandKit {
   id?: string;
+  business_id?: string; // Foreign key to businesses table
   businessName: string;
   businessDescription: string;
   industry: Industry;
@@ -70,6 +86,13 @@ export interface BrandKit {
     logo?: string;
   };
   generatedAt: string;
+}
+
+/**
+ * Brand kit with associated business information
+ */
+export interface BrandKitWithBusiness extends BrandKit {
+  business: Business;
 }
 
 /**
