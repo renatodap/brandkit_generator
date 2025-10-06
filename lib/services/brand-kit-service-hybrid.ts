@@ -530,8 +530,12 @@ export async function getBrandKitByShareToken(token: string) {
 
   if (kitError || !brandKit) return null;
 
-  // Track access
-  await supabase.rpc('track_share_token_access', { token_value: token }).catch(() => {});
+  // Track access (ignore errors)
+  try {
+    await supabase.rpc('track_share_token_access', { token_value: token });
+  } catch (error) {
+    // Silently ignore tracking errors
+  }
 
   return brandKit as BrandKit;
 }
