@@ -12,26 +12,26 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Brand Kit Generator - AI-Powered Brand Identity in Seconds',
-    template: '%s | Brand Kit Generator',
+    default: 'Persimmon Labs - AI-Powered Business Tools',
+    template: '%s | Persimmon Labs',
   },
   description:
-    'Generate professional brand kits instantly with AI. Get logos, color palettes, typography recommendations, and taglines for your business in seconds. Free and easy to use.',
+    'Your unified platform for AI-powered business tools. Create brand identities, manage teams, and grow your business with intelligent automation. One account, multiple tools.',
   keywords: [
+    'persimmon labs',
+    'AI business tools',
     'brand kit generator',
     'AI logo generator',
     'color palette generator',
     'brand identity',
+    'team collaboration',
+    'business automation',
     'AI branding',
-    'business branding',
-    'logo design',
-    'brand guidelines',
-    'tagline generator',
-    'typography pairing',
+    'unified platform',
   ],
-  authors: [{ name: 'Brand Kit Generator' }],
-  creator: 'Brand Kit Generator',
-  publisher: 'Brand Kit Generator',
+  authors: [{ name: 'Persimmon Labs' }],
+  creator: 'Persimmon Labs',
+  publisher: 'Persimmon Labs',
   formatDetection: {
     email: false,
     address: false,
@@ -42,17 +42,17 @@ export const metadata: Metadata = {
     (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
   ),
   openGraph: {
-    title: 'Brand Kit Generator - AI-Powered Brand Identity',
+    title: 'Persimmon Labs - AI-Powered Business Tools',
     description:
-      'Generate professional brand kits instantly with AI. Free logo, colors, fonts, and taglines.',
+      'Your unified platform for AI-powered business tools. One account, multiple tools.',
     url: '/',
-    siteName: 'Brand Kit Generator',
+    siteName: 'Persimmon Labs',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Brand Kit Generator - AI-Powered Brand Identity',
+        alt: 'Persimmon Labs - AI-Powered Business Tools',
       },
     ],
     locale: 'en_US',
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Brand Kit Generator - AI-Powered Brand Identity',
+    title: 'Persimmon Labs - AI-Powered Business Tools',
     description: 'Generate professional brand kits instantly with AI.',
     images: ['/og-image.png'],
     creator: '@brandkitgen',
@@ -121,10 +121,16 @@ export default function RootLayout({
             <div className="container flex h-16 items-center">
               <div className="mr-4 flex">
                 <a href="/" className="mr-6 flex items-center space-x-2">
-                  <span className="text-xl font-bold">Brand Kit Generator</span>
+                  <span className="text-xl font-bold">Persimmon Labs</span>
                 </a>
               </div>
               <nav className="ml-auto flex items-center space-x-4">
+                <a
+                  href="/tools/brand-kit"
+                  className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+                >
+                  Brand Kit
+                </a>
                 <a
                   href="/privacy"
                   className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
@@ -145,7 +151,7 @@ export default function RootLayout({
           <footer className="border-t py-6 md:py-0">
             <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
               <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-                © 2025 Brand Kit Generator. Powered by AI. Generated assets should be reviewed
+                © 2025 Persimmon Labs. Powered by AI. Generated assets should be reviewed
                 before commercial use.
               </p>
               <p className="text-center text-sm text-muted-foreground">

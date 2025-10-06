@@ -1,317 +1,265 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { Loader2, Sparkles, Palette, Type, Tag } from 'lucide-react';
-import { toast } from 'sonner';
-
+import Link from 'next/link';
+import { Sparkles, Palette, Users, Zap, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import { LogoControl } from '@/components/brand-kit-form/logo-control';
-import { ColorPaletteControl } from '@/components/brand-kit-form/color-palette-control';
-import { TypographyControl } from '@/components/brand-kit-form/typography-control';
-import { AdvancedOptions } from '@/components/brand-kit-form/advanced-options';
-
-import { enhancedBrandKitInputSchema, type EnhancedBrandKitInputType } from '@/lib/validations';
-import type { BrandKit } from '@/types';
-
 export default function HomePage() {
-  const router = useRouter();
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<EnhancedBrandKitInputType>({
-    resolver: zodResolver(enhancedBrandKitInputSchema),
-    defaultValues: {
-      businessName: '',
-      businessDescription: '',
-      industry: 'tech',
-      notes: '',
-      logoOption: 'generate',
-      logoBase64: undefined,
-      colorOption: 'generate',
-      existingColors: undefined,
-      fontOption: 'generate',
-      existingFonts: undefined,
-      advancedOptions: undefined,
-    },
-  });
-
-  const selectedIndustry = watch('industry');
-  const logoOption = watch('logoOption');
-  const logoBase64 = watch('logoBase64');
-  const colorOption = watch('colorOption');
-  const existingColors = watch('existingColors');
-  const fontOption = watch('fontOption');
-  const existingFonts = watch('existingFonts');
-  const advancedOptions = watch('advancedOptions');
-
-  const onSubmit = async (data: EnhancedBrandKitInputType) => {
-    setIsGenerating(true);
-
-    try {
-      const response = await fetch('/api/generate-brand-kit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate brand kit');
-      }
-
-      const brandKit: BrandKit = await response.json();
-
-      // Store in localStorage for results page
-      localStorage.setItem('brandKit', JSON.stringify(brandKit));
-
-      toast.success('Brand kit generated successfully!');
-      router.push('/results');
-    } catch (error) {
-      console.error('Error generating brand kit:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to generate brand kit. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <div className="mx-auto max-w-3xl text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-6xl mb-4">
-          Generate Your Brand Kit
-          <span className="block text-primary mt-2">Powered by AI</span>
-        </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Create a professional brand identity in seconds. Get your logo, color palette, typography, and tagline instantly.
-        </p>
-      </div>
+      <section className="container mx-auto px-4 py-20 text-center">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-sm font-medium text-primary">
+            <Sparkles className="h-4 w-4" />
+            Powered by AI
+          </div>
 
-      {/* Features Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12 max-w-5xl mx-auto">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Sparkles className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-1">AI Logo</h3>
-            <p className="text-sm text-muted-foreground">Unique, professional logo</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Palette className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-1">Color Palette</h3>
-            <p className="text-sm text-muted-foreground">5-color brand palette</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Type className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-1">Typography</h3>
-            <p className="text-sm text-muted-foreground">Perfect font pairing</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <Tag className="h-8 w-8 mx-auto mb-3 text-primary" />
-            <h3 className="font-semibold mb-1">Tagline</h3>
-            <p className="text-sm text-muted-foreground">Compelling brand message</p>
-          </CardContent>
-        </Card>
-      </div>
+          <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+            Welcome to
+            <span className="block text-primary mt-2">Persimmon Labs</span>
+          </h1>
 
-      {/* Generation Form */}
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle>Tell us about your business</CardTitle>
-          <CardDescription>
-            Fill in the details below and we&apos;ll generate your complete brand kit
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Business Name */}
-            <div className="space-y-2">
-              <Label htmlFor="businessName">
-                Business Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="businessName"
-                placeholder="e.g., TechVision Solutions"
-                {...register('businessName')}
-                aria-invalid={errors.businessName ? 'true' : 'false'}
-                aria-describedby={errors.businessName ? 'businessName-error' : undefined}
-              />
-              {errors.businessName && (
-                <p id="businessName-error" className="text-sm text-destructive" role="alert">
-                  {errors.businessName.message}
-                </p>
-              )}
-            </div>
+          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+            Your unified platform for AI-powered business tools. Create brand identities, manage teams, and grow your business with intelligent automation.
+          </p>
 
-            {/* Business Description */}
-            <div className="space-y-2">
-              <Label htmlFor="businessDescription">
-                Business Description <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="businessDescription"
-                placeholder="Describe what your business does in 2-3 sentences..."
-                rows={4}
-                {...register('businessDescription')}
-                aria-invalid={errors.businessDescription ? 'true' : 'false'}
-                aria-describedby={errors.businessDescription ? 'businessDescription-error' : undefined}
-              />
-              {errors.businessDescription && (
-                <p id="businessDescription-error" className="text-sm text-destructive" role="alert">
-                  {errors.businessDescription.message}
-                </p>
-              )}
-            </div>
-
-            {/* Industry */}
-            <div className="space-y-2">
-              <Label htmlFor="industry">
-                Industry <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={selectedIndustry}
-                onValueChange={(value) => setValue('industry', value as EnhancedBrandKitInputType['industry'])}
-              >
-                <SelectTrigger id="industry" aria-label="Select industry">
-                  <SelectValue placeholder="Select an industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tech">Technology</SelectItem>
-                  <SelectItem value="food">Food & Beverage</SelectItem>
-                  <SelectItem value="fashion">Fashion & Apparel</SelectItem>
-                  <SelectItem value="health">Health & Wellness</SelectItem>
-                  <SelectItem value="creative">Creative & Arts</SelectItem>
-                  <SelectItem value="finance">Finance & Business</SelectItem>
-                  <SelectItem value="education">Education</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.industry && (
-                <p className="text-sm text-destructive" role="alert">
-                  {errors.industry.message}
-                </p>
-              )}
-            </div>
-
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">
-                Notes (Optional)
-              </Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any specific details about your brand vision... e.g., 'Use ocean imagery', 'Avoid red colors', 'Target Gen Z audience'"
-                rows={3}
-                {...register('notes')}
-                aria-invalid={errors.notes ? 'true' : 'false'}
-                aria-describedby={errors.notes ? 'notes-error' : undefined}
-              />
-              {errors.notes && (
-                <p id="notes-error" className="text-sm text-destructive" role="alert">
-                  {errors.notes.message}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                These notes will guide all AI generation (logo, colors, fonts, tagline)
-              </p>
-            </div>
-
-            {/* Logo Control */}
-            <LogoControl
-              value={logoOption}
-              onChange={(value) => setValue('logoOption', value)}
-              onFileChange={(base64) => setValue('logoBase64', base64 || undefined)}
-              logoBase64={logoBase64}
-              error={errors.logoBase64?.message}
-            />
-
-            {/* Color Palette Control */}
-            <ColorPaletteControl
-              value={colorOption}
-              onChange={(value) => setValue('colorOption', value)}
-              colors={existingColors}
-              onColorsChange={(colors) => setValue('existingColors', colors)}
-              errors={{
-                primary: errors.existingColors?.primary?.message,
-                secondary: errors.existingColors?.secondary?.message,
-                accent: errors.existingColors?.accent?.message,
-                neutral: errors.existingColors?.neutral?.message,
-                background: errors.existingColors?.background?.message,
-              }}
-            />
-
-            {/* Typography Control */}
-            <TypographyControl
-              value={fontOption}
-              onChange={(value) => setValue('fontOption', value)}
-              fonts={existingFonts}
-              onFontsChange={(fonts) => setValue('existingFonts', fonts)}
-              errors={{
-                primaryName: errors.existingFonts?.primary?.name?.message,
-                primaryCategory: errors.existingFonts?.primary?.category?.message,
-                primaryUrl: errors.existingFonts?.primary?.url?.message,
-                secondaryName: errors.existingFonts?.secondary?.name?.message,
-                secondaryCategory: errors.existingFonts?.secondary?.category?.message,
-                secondaryUrl: errors.existingFonts?.secondary?.url?.message,
-              }}
-            />
-
-            {/* Advanced Options */}
-            <AdvancedOptions
-              value={advancedOptions}
-              onChange={(value) => setValue('advancedOptions', value)}
-            />
-
-            {/* Submit Button */}
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={isGenerating}
-              aria-label={isGenerating ? 'Generating brand kit' : 'Generate brand kit'}
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                  Generating Your Brand Kit...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
-                  Generate Brand Kit
-                </>
-              )}
+          <div className="flex items-center justify-center gap-4 pt-4">
+            <Button size="lg" asChild>
+              <Link href="/sign-up">
+                Get Started Free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
+            <Button size="lg" variant="outline" asChild>
+              <Link href="/tools/brand-kit">Try Brand Kit</Link>
+            </Button>
+          </div>
 
-            {/* Disclaimer */}
-            <p className="text-xs text-muted-foreground text-center">
-              ⚠️ AI-generated content should be reviewed before commercial use.
-              {logoOption === 'generate' ? ' Logo generation may take 10-30 seconds.' : ' Generation may take 5-15 seconds.'}
+          <p className="text-sm text-muted-foreground">
+            No credit card required • Free forever for personal use
+          </p>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">One Account, Multiple Tools</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Sign up once and access all Persimmon Labs tools with a single unified account
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <Card>
+            <CardHeader>
+              <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                <Palette className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>Brand Kit Generator</CardTitle>
+              <CardDescription>
+                AI-powered brand identity creation in seconds
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Custom logos with AI</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Perfect color palettes</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Professional typography</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Compelling taglines</span>
+                </li>
+              </ul>
+              <Button className="w-full mt-6" variant="outline" asChild>
+                <Link href="/tools/brand-kit">Try Now</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                <Users className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>Team Collaboration</CardTitle>
+              <CardDescription>
+                Work together with your team on shared projects
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Role-based access control</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Shared workspaces</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Activity tracking</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Team management</span>
+                </li>
+              </ul>
+              <Button className="w-full mt-6" variant="outline" asChild>
+                <Link href="/sign-up">Get Started</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="p-3 bg-primary/10 rounded-lg w-fit mb-4">
+                <Zap className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle>More Tools Coming</CardTitle>
+              <CardDescription>
+                Expanding suite of AI-powered business tools
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Content generation</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Marketing automation</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>Analytics & insights</span>
+                </li>
+                <li className="flex items-start">
+                  <span className="mr-2">•</span>
+                  <span>And much more...</span>
+                </li>
+              </ul>
+              <Button className="w-full mt-6" variant="outline" disabled>
+                Coming Soon
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      {/* Account Types Section */}
+      <section className="bg-muted/30 py-16">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Choose Your Account Type</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Personal or Business - one account works everywhere
             </p>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Card className="border-2">
+              <CardHeader>
+                <CardTitle className="text-2xl">Personal Account</CardTitle>
+                <CardDescription className="text-base">
+                  Perfect for freelancers, consultants, and entrepreneurs
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-3xl font-bold">Free</div>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Manage unlimited businesses</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>10 brand kits per month</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Export all assets</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Multiple client projects</span>
+                  </li>
+                </ul>
+                <Button className="w-full" asChild>
+                  <Link href="/sign-up">Create Personal Account</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 border-primary">
+              <CardHeader>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-xs font-medium text-primary mb-2 w-fit">
+                  RECOMMENDED FOR TEAMS
+                </div>
+                <CardTitle className="text-2xl">Business Account</CardTitle>
+                <CardDescription className="text-base">
+                  For teams and companies that need collaboration
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-3xl font-bold">From $29/month</div>
+                <ul className="space-y-2">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Team collaboration</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Unlimited brand kits</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Role-based access</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary">✓</span>
+                    <span>Priority support</span>
+                  </li>
+                </ul>
+                <Button className="w-full" asChild>
+                  <Link href="/sign-up">Create Business Account</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="max-w-3xl mx-auto text-center space-y-8">
+          <h2 className="text-4xl md:text-5xl font-bold">
+            Ready to Get Started?
+          </h2>
+          <p className="text-xl text-muted-foreground">
+            Join Persimmon Labs today and access all our AI-powered tools with a single unified account
+          </p>
+          <Button size="lg" asChild>
+            <Link href="/sign-up">
+              Create Your Free Account
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
+      </section>
     </div>
   );
 }
