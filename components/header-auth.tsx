@@ -56,7 +56,7 @@ export function HeaderAuth() {
 
   const getUserInitial = () => {
     if (!user) return '?';
-    const name = user.user_metadata?.full_name || user.email;
+    const name = user.user_metadata?.['full_name'] || user.email;
     return name ? name.charAt(0).toUpperCase() : '?';
   };
 
@@ -83,7 +83,7 @@ export function HeaderAuth() {
             <div className="py-1">
               {/* User Info */}
               <div className="px-4 py-3 border-b border-border">
-                <p className="text-sm font-medium truncate">{user.user_metadata?.full_name || 'User'}</p>
+                <p className="text-sm font-medium truncate">{user.user_metadata?.['full_name'] || 'User'}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
 

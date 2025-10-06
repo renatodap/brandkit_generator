@@ -28,7 +28,7 @@ export default function AccountSettingsPage() {
         return;
       }
       setUser(user);
-      setFullName(user.user_metadata?.full_name || '');
+      setFullName(user.user_metadata?.['full_name'] || '');
       setEmail(user.email || '');
       setLoading(false);
     };
@@ -137,10 +137,10 @@ export default function AccountSettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">
-                  {user?.user_metadata?.account_type === 'business' ? 'Business Account' : 'Personal Account'}
+                  {user?.user_metadata?.['account_type'] === 'business' ? 'Business Account' : 'Personal Account'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {user?.user_metadata?.account_type === 'business'
+                  {user?.user_metadata?.['account_type'] === 'business'
                     ? 'Team collaboration and advanced features'
                     : 'Manage unlimited businesses'}
                 </p>
