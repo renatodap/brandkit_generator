@@ -80,17 +80,17 @@ export async function POST(request: NextRequest) {
     const [symbolsResult, colorPrefsResult, personalityResult] = await Promise.allSettled([
       extractLogoSymbols({
         businessName,
-        description: businessDescription,
+        description: businessDescription || '',
         industry,
       }),
       extractColorPreferences({
         businessName,
-        description: businessDescription,
+        description: businessDescription || '',
         industry,
       }),
       extractBrandPersonality({
         businessName,
-        description: businessDescription,
+        description: businessDescription || '',
         industry,
       }),
     ]);
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       console.log('🎨 Generating color palette...');
       try {
         // Enhance the generation with notes and advanced options
-        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         return await generateColorPalette({
           businessName,
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
         console.log('🖼️  Generating SVG logo with Groq (Llama 3.3 + 3.1)...');
 
         // Enhance description with notes and advanced options
-        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         const result = await generateLogoWithGroq({
           businessName,
@@ -234,7 +234,7 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('🔤 Generating font pairing...');
-        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         return getFontPairing({
           industry,
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest) {
       // Tagline (always generate with enhancement)
       (async () => {
         console.log('✍️  Generating tagline...');
-        const enhancedDescription = enhancePrompt(businessDescription, notes, advancedOptions);
+        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         return generateTagline({
           businessName,
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
     // Step 4: Generate justifications in parallel (with enhanced context)
     console.log('📝 Generating justifications...');
     const enhancedDescriptionForJustifications = enhancePrompt(
-      businessDescription,
+      businessDescription || '',
       notes,
       advancedOptions
     );

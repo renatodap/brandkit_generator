@@ -213,8 +213,9 @@ export const enhancedBrandKitInputSchema = z
       .regex(/^[a-zA-Z0-9\s&'-]+$/, 'Business name contains invalid characters'),
     businessDescription: z
       .string()
-      .min(10, 'Description must be at least 10 characters')
-      .max(500, 'Description must be 500 characters or less'),
+      .max(500, 'Description must be 500 characters or less')
+      .optional()
+      .or(z.literal('')),
     industry: industrySchema,
 
     // Optional contextual notes

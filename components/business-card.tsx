@@ -25,8 +25,8 @@ interface BusinessCardProps {
   };
   onGenerateKit: (businessId: string) => void;
   onViewKit: (brandKitId: string) => void;
-  onEdit: (business: Business) => void;
-  onDelete: (business: Business) => void;
+  onEdit: (business: Business & { brand_kit: any | null; has_brand_kit: boolean }) => void;
+  onDelete: (business: Business & { brand_kit: any | null; has_brand_kit: boolean }) => void;
 }
 
 export function BusinessCard({ business, onGenerateKit, onViewKit, onEdit, onDelete }: BusinessCardProps) {

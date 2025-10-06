@@ -14,11 +14,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 import { LogoControl } from '@/components/brand-kit-form/logo-control';
 import { ColorPaletteControl } from '@/components/brand-kit-form/color-palette-control';
 import { TypographyControl } from '@/components/brand-kit-form/typography-control';
 import { AdvancedOptions } from '@/components/brand-kit-form/advanced-options';
+import { ProgressiveGeneration } from '@/components/progressive-generation';
 
 import { enhancedBrandKitInputSchema, type EnhancedBrandKitInputType } from '@/lib/validations';
 import type { BrandKit } from '@/types';
@@ -246,151 +248,171 @@ export default function BrandKitGenerationPage() {
       {/* Generation Form */}
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
-          <CardTitle>Tell us about your business</CardTitle>
+          <CardTitle>{isGenerating ? 'Creating Your Brand Kit' : 'Generate Your Brand Kit'}</CardTitle>
           <CardDescription>
-            Fill in the details below and we&apos;ll generate your complete brand kit
+            {isGenerating
+              ? 'Our AI is crafting your unique brand identity'
+              : 'We\'ll handle the details—just tell us a bit about your business'}
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isGenerating ? (
+            <ProgressiveGeneration isGenerating={isGenerating} />
+          ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Business Name */}
-            <div className="space-y-2">
-              <Label htmlFor="businessName">
-                Business Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="businessName"
-                placeholder="e.g., TechVision Solutions"
-                {...register('businessName')}
-                aria-invalid={errors.businessName ? 'true' : 'false'}
-                aria-describedby={errors.businessName ? 'businessName-error' : undefined}
-                disabled={!!businessId}
-              />
-              {errors.businessName && (
-                <p id="businessName-error" className="text-sm text-destructive" role="alert">
-                  {errors.businessName.message}
-                </p>
-              )}
+            {/* Core Fields (Always Visible) */}
+            <div className="space-y-6 p-6 rounded-lg bg-muted/30 border">
+              {/* Business Name */}
+              <div className="space-y-2">
+                <Label htmlFor="businessName">
+                  Business Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="businessName"
+                  placeholder="e.g., TechVision Solutions"
+                  {...register('businessName')}
+                  aria-invalid={errors.businessName ? 'true' : 'false'}
+                  disabled={!!businessId}
+                  className="text-base"
+                />
+                {errors.businessName && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {errors.businessName.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Industry */}
+              <div className="space-y-2">
+                <Label htmlFor="industry">
+                  Industry <span className="text-destructive">*</span>
+                </Label>
+                <Select
+                  value={selectedIndustry}
+                  onValueChange={(value) => setValue('industry', value as EnhancedBrandKitInputType['industry'])}
+                >
+                  <SelectTrigger id="industry" className="text-base">
+                    <SelectValue placeholder="Select an industry" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tech">Technology</SelectItem>
+                    <SelectItem value="food">Food & Beverage</SelectItem>
+                    <SelectItem value="fashion">Fashion & Apparel</SelectItem>
+                    <SelectItem value="health">Health & Wellness</SelectItem>
+                    <SelectItem value="creative">Creative & Arts</SelectItem>
+                    <SelectItem value="finance">Finance & Business</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.industry && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {errors.industry.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Business Description */}
+              <div className="space-y-2">
+                <Label htmlFor="businessDescription">
+                  Short Description (Optional)
+                </Label>
+                <Textarea
+                  id="businessDescription"
+                  placeholder="Briefly describe what your business does..."
+                  rows={3}
+                  {...register('businessDescription')}
+                  aria-invalid={errors.businessDescription ? 'true' : 'false'}
+                  className="text-base resize-none"
+                />
+                {errors.businessDescription && (
+                  <p className="text-sm text-destructive" role="alert">
+                    {errors.businessDescription.message}
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Business Description */}
-            <div className="space-y-2">
-              <Label htmlFor="businessDescription">
-                Business Description <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="businessDescription"
-                placeholder="Describe what your business does in 2-3 sentences..."
-                rows={4}
-                {...register('businessDescription')}
-                aria-invalid={errors.businessDescription ? 'true' : 'false'}
-                aria-describedby={errors.businessDescription ? 'businessDescription-error' : undefined}
-              />
-              {errors.businessDescription && (
-                <p id="businessDescription-error" className="text-sm text-destructive" role="alert">
-                  {errors.businessDescription.message}
-                </p>
-              )}
-            </div>
+            {/* Advanced Options (Collapsed by Default) */}
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="advanced" className="border rounded-lg px-4">
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">Advanced Options</span>
+                    <span className="text-xs text-muted-foreground">(Optional - Use smart defaults)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-6 pt-4">
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">
+                      Brand Vision Notes
+                    </Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="E.g., 'Modern and minimal', 'Ocean-inspired colors', 'Target Gen Z'"
+                      rows={3}
+                      {...register('notes')}
+                      className="resize-none"
+                    />
+                    {errors.notes && (
+                      <p className="text-sm text-destructive" role="alert">
+                        {errors.notes.message}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Guide the AI with specific preferences or requirements
+                    </p>
+                  </div>
 
-            {/* Industry */}
-            <div className="space-y-2">
-              <Label htmlFor="industry">
-                Industry <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={selectedIndustry}
-                onValueChange={(value) => setValue('industry', value as EnhancedBrandKitInputType['industry'])}
-              >
-                <SelectTrigger id="industry" aria-label="Select industry">
-                  <SelectValue placeholder="Select an industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tech">Technology</SelectItem>
-                  <SelectItem value="food">Food & Beverage</SelectItem>
-                  <SelectItem value="fashion">Fashion & Apparel</SelectItem>
-                  <SelectItem value="health">Health & Wellness</SelectItem>
-                  <SelectItem value="creative">Creative & Arts</SelectItem>
-                  <SelectItem value="finance">Finance & Business</SelectItem>
-                  <SelectItem value="education">Education</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.industry && (
-                <p className="text-sm text-destructive" role="alert">
-                  {errors.industry.message}
-                </p>
-              )}
-            </div>
+                  {/* Logo Control */}
+                  <LogoControl
+                    value={logoOption}
+                    onChange={(value) => setValue('logoOption', value)}
+                    onFileChange={(base64) => setValue('logoBase64', base64 || undefined)}
+                    logoBase64={logoBase64}
+                    error={errors.logoBase64?.message}
+                  />
 
-            {/* Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">
-                Notes (Optional)
-              </Label>
-              <Textarea
-                id="notes"
-                placeholder="Add any specific details about your brand vision... e.g., 'Use ocean imagery', 'Avoid red colors', 'Target Gen Z audience'"
-                rows={3}
-                {...register('notes')}
-                aria-invalid={errors.notes ? 'true' : 'false'}
-                aria-describedby={errors.notes ? 'notes-error' : undefined}
-              />
-              {errors.notes && (
-                <p id="notes-error" className="text-sm text-destructive" role="alert">
-                  {errors.notes.message}
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                These notes will guide all AI generation (logo, colors, fonts, tagline)
-              </p>
-            </div>
+                  {/* Color Palette Control */}
+                  <ColorPaletteControl
+                    value={colorOption}
+                    onChange={(value) => setValue('colorOption', value)}
+                    colors={existingColors}
+                    onColorsChange={(colors) => setValue('existingColors', colors)}
+                    errors={{
+                      primary: errors.existingColors?.primary?.message,
+                      secondary: errors.existingColors?.secondary?.message,
+                      accent: errors.existingColors?.accent?.message,
+                      neutral: errors.existingColors?.neutral?.message,
+                      background: errors.existingColors?.background?.message,
+                    }}
+                  />
 
-            {/* Logo Control */}
-            <LogoControl
-              value={logoOption}
-              onChange={(value) => setValue('logoOption', value)}
-              onFileChange={(base64) => setValue('logoBase64', base64 || undefined)}
-              logoBase64={logoBase64}
-              error={errors.logoBase64?.message}
-            />
+                  {/* Typography Control */}
+                  <TypographyControl
+                    value={fontOption}
+                    onChange={(value) => setValue('fontOption', value)}
+                    fonts={existingFonts}
+                    onFontsChange={(fonts) => setValue('existingFonts', fonts)}
+                    errors={{
+                      primaryName: errors.existingFonts?.primary?.name?.message,
+                      primaryCategory: errors.existingFonts?.primary?.category?.message,
+                      primaryUrl: errors.existingFonts?.primary?.url?.message,
+                      secondaryName: errors.existingFonts?.secondary?.name?.message,
+                      secondaryCategory: errors.existingFonts?.secondary?.category?.message,
+                      secondaryUrl: errors.existingFonts?.secondary?.url?.message,
+                    }}
+                  />
 
-            {/* Color Palette Control */}
-            <ColorPaletteControl
-              value={colorOption}
-              onChange={(value) => setValue('colorOption', value)}
-              colors={existingColors}
-              onColorsChange={(colors) => setValue('existingColors', colors)}
-              errors={{
-                primary: errors.existingColors?.primary?.message,
-                secondary: errors.existingColors?.secondary?.message,
-                accent: errors.existingColors?.accent?.message,
-                neutral: errors.existingColors?.neutral?.message,
-                background: errors.existingColors?.background?.message,
-              }}
-            />
-
-            {/* Typography Control */}
-            <TypographyControl
-              value={fontOption}
-              onChange={(value) => setValue('fontOption', value)}
-              fonts={existingFonts}
-              onFontsChange={(fonts) => setValue('existingFonts', fonts)}
-              errors={{
-                primaryName: errors.existingFonts?.primary?.name?.message,
-                primaryCategory: errors.existingFonts?.primary?.category?.message,
-                primaryUrl: errors.existingFonts?.primary?.url?.message,
-                secondaryName: errors.existingFonts?.secondary?.name?.message,
-                secondaryCategory: errors.existingFonts?.secondary?.category?.message,
-                secondaryUrl: errors.existingFonts?.secondary?.url?.message,
-              }}
-            />
-
-            {/* Advanced Options */}
-            <AdvancedOptions
-              value={advancedOptions}
-              onChange={(value) => setValue('advancedOptions', value)}
-            />
+                  {/* AI Model Options */}
+                  <AdvancedOptions
+                    value={advancedOptions}
+                    onChange={(value) => setValue('advancedOptions', value)}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             {/* Submit Button */}
             <Button
@@ -419,6 +441,7 @@ export default function BrandKitGenerationPage() {
               {logoOption === 'generate' ? ' Logo generation may take 10-30 seconds.' : ' Generation may take 5-15 seconds.'}
             </p>
           </form>
+          )}
         </CardContent>
       </Card>
     </div>

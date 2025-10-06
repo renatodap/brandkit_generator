@@ -45,7 +45,6 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
     handleSubmit,
     setValue,
     watch,
-    reset,
     formState: { errors },
   } = useForm<UpdateBusinessInput>({
     resolver: zodResolver(updateBusinessSchema),

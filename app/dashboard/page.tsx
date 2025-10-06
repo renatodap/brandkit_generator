@@ -6,11 +6,13 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { BusinessCard } from '@/components/business-card';
 import { CreateBusinessDialog } from '@/components/create-business-dialog';
 import { EditBusinessDialog } from '@/components/edit-business-dialog';
+import { TemplateSelector } from '@/components/template-selector';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { Business } from '@/types';
+import type { BusinessTemplate } from '@/config/templates';
+import { generateSlugFromTemplate } from '@/config/templates';
 
 interface BusinessWithBrandKit extends Business {
   brand_kit: any | null;
@@ -36,6 +40,7 @@ export default function DashboardPage() {
   const [editingBusiness, setEditingBusiness] = useState<Business | null>(null);
   const [deletingBusiness, setDeletingBusiness] = useState<BusinessWithBrandKit | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isCreatingFromTemplate, setIsCreatingFromTemplate] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -144,6 +149,52 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTemplateSelect = async (template: BusinessTemplate) => {
+    setIsCreatingFromTemplate(true);
+    try {
+      // Create business from template
+      const slug = generateSlugFromTemplate(template);
+
+      const response = await fetch('/api/businesses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: template.businessName,
+          slug,
+          description: template.description,
+          industry: template.industry,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create business');
+      }
+
+      const newBusiness = await response.json();
+
+      // Add to list
+      setBusinesses((prev) => [
+        {
+          ...newBusiness,
+          brand_kit: null,
+          has_brand_kit: false,
+        },
+        ...prev,
+      ]);
+
+      toast.success('Business created from template!');
+
+      // Immediately redirect to generate brand kit
+      router.push(`/tools/brand-kit?businessId=${newBusiness.id}&template=${template.id}`);
+    } catch (error) {
+      console.error('Error creating business from template:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create business');
+    } finally {
+      setIsCreatingFromTemplate(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container py-12">
@@ -180,20 +231,55 @@ export default function DashboardPage() {
       </div>
 
       {businesses.length === 0 ? (
-        <Card className="p-12 text-center">
-          <div className="mx-auto max-w-md space-y-4">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
-              <Plus className="h-10 w-10 text-muted-foreground" />
+        <Card className="p-8">
+          <div className="space-y-6">
+            {/* Hero Section */}
+            <div className="text-center space-y-3">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20">
+                <Sparkles className="h-10 w-10 text-primary" />
+              </div>
+              <h2 className="text-3xl font-bold">Create Your First Brand Kit</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Get started in under 60 seconds with a template, or customize every detail from scratch.
+              </p>
             </div>
-            <h2 className="text-2xl font-semibold">No businesses yet</h2>
-            <p className="text-muted-foreground">
-              Create your first business to get started. Each business can have its own brand
-              kit.
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)} size="lg" className="mt-4">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Your First Business
-            </Button>
+
+            {/* Tabs for Templates vs Custom */}
+            <Tabs defaultValue="templates" className="w-full">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+                <TabsTrigger value="templates">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Quick Start Templates
+                </TabsTrigger>
+                <TabsTrigger value="custom">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Start from Scratch
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="templates" className="mt-6">
+                <TemplateSelector
+                  onSelectTemplate={handleTemplateSelect}
+                  disabled={isCreatingFromTemplate}
+                />
+              </TabsContent>
+
+              <TabsContent value="custom" className="mt-6">
+                <div className="text-center space-y-4 py-12">
+                  <div className="mx-auto max-w-md space-y-3">
+                    <h3 className="text-xl font-semibold">Build from Scratch</h3>
+                    <p className="text-muted-foreground">
+                      Create a business with full control over every detail. Perfect if you have
+                      specific branding requirements.
+                    </p>
+                    <Button onClick={() => setShowCreateDialog(true)} size="lg" className="mt-4">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Custom Business
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </Card>
       ) : (

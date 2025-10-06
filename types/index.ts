@@ -71,7 +71,7 @@ export interface BrandKit {
   id?: string;
   business_id?: string; // Foreign key to businesses table
   businessName: string;
-  businessDescription: string;
+  businessDescription?: string;
   industry: Industry;
   logo: {
     url: string;
