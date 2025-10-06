@@ -53,6 +53,7 @@ export interface FontPairing {
  * Complete brand kit output
  */
 export interface BrandKit {
+  id?: string;
   businessName: string;
   businessDescription: string;
   industry: Industry;
