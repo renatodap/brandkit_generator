@@ -3,11 +3,39 @@
  *
  * Handles all database operations for businesses with proper RLS enforcement.
  * Each user can have multiple businesses, and each business can have one brand kit.
+ * Supports team collaboration - users can access businesses they own or are members of.
  */
 
 import { createClient } from '../supabase/server';
 import type { CreateBusinessInput, UpdateBusinessInput, ListBusinessesQuery } from '../validations/business';
 import type { Business } from '@/types';
+
+/**
+ * Get all business IDs that a user has access to (owned + member)
+ * @param userId - User's unique identifier
+ * @returns Array of business IDs
+ */
+async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
+  const supabase = await createClient();
+
+  // Get businesses owned by user
+  const { data: ownedBusinesses } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('user_id', userId);
+
+  // Get businesses where user is a member
+  const { data: memberBusinesses } = await supabase
+    .from('business_members')
+    .select('business_id')
+    .eq('user_id', userId);
+
+  const ownedIds = ownedBusinesses?.map(b => b.id) || [];
+  const memberIds = memberBusinesses?.map(m => m.business_id) || [];
+
+  // Combine and deduplicate
+  return [...new Set([...ownedIds, ...memberIds])];
+}
 
 /**
  * Create a new business for a user
@@ -64,10 +92,22 @@ export async function getBusinesses(
 }> {
   const supabase = await createClient();
 
+  // Get all business IDs user has access to (owned + member)
+  const accessibleIds = await getUserAccessibleBusinessIds(userId);
+
+  if (accessibleIds.length === 0) {
+    return {
+      businesses: [],
+      total: 0,
+      limit: query.limit,
+      offset: query.offset,
+    };
+  }
+
   let queryBuilder = supabase
     .from('businesses')
     .select('*', { count: 'exact' })
-    .eq('user_id', userId); // RLS policy will also enforce this
+    .in('id', accessibleIds); // Get businesses user owns or is a member of
 
   // Apply filters
   if (query.industry) {
@@ -302,6 +342,18 @@ export async function getBusinessesWithBrandKits(
 }> {
   const supabase = await createClient();
 
+  // Get all business IDs user has access to (owned + member)
+  const accessibleIds = await getUserAccessibleBusinessIds(userId);
+
+  if (accessibleIds.length === 0) {
+    return {
+      businesses: [],
+      total: 0,
+      limit: query.limit,
+      offset: query.offset,
+    };
+  }
+
   let queryBuilder = supabase
     .from('businesses')
     .select(
@@ -323,7 +375,7 @@ export async function getBusinessesWithBrandKits(
     `,
       { count: 'exact' }
     )
-    .eq('user_id', userId); // RLS policy will also enforce this
+    .in('id', accessibleIds); // Get businesses user owns or is a member of
 
   // Apply filters
   if (query.industry) {
