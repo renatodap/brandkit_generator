@@ -4,24 +4,23 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, Eye, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { BusinessCard } from '@/components/business-card';
+import { CreateBusinessDialog } from '@/components/create-business-dialog';
+import type { Business } from '@/types';
 
-interface BrandKit {
-  id: string;
-  business_name: string;
-  industry: string | null;
-  logo_url: string;
-  is_favorite: boolean;
-  created_at: string;
-  updated_at: string;
+interface BusinessWithBrandKit extends Business {
+  brand_kit: any | null;
+  has_brand_kit: boolean;
 }
 
 export default function DashboardPage() {
-  const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
+  const [businesses, setBusinesses] = useState<BusinessWithBrandKit[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const router = useRouter();
   const supabase = createClient();
 
@@ -30,58 +29,59 @@ export default function DashboardPage() {
   }, []);
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       router.push('/sign-in');
       return;
     }
 
-    fetchBrandKits();
+    fetchBusinesses();
   };
 
-  const fetchBrandKits = async () => {
+  const fetchBusinesses = async () => {
     try {
-      const response = await fetch('/api/brand-kits');
+      const response = await fetch('/api/businesses?include=brand_kits');
 
       if (!response.ok) {
         if (response.status === 401) {
           router.push('/sign-in');
           return;
         }
-        throw new Error('Failed to fetch brand kits');
+        throw new Error('Failed to fetch businesses');
       }
 
       const data = await response.json();
-      setBrandKits(data.brandKits || []);
+      setBusinesses(data.businesses || []);
     } catch (error) {
-      console.error('Error fetching brand kits:', error);
-      toast.error('Failed to load brand kits');
+      console.error('Error fetching businesses:', error);
+      toast.error('Failed to load businesses');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleFavorite = async (id: string, currentFavorite: boolean) => {
-    try {
-      const response = await fetch(`/api/brand-kits/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFavorite: !currentFavorite }),
-      });
+  const handleGenerateKit = (businessId: string) => {
+    router.push(`/tools/brand-kit?businessId=${businessId}`);
+  };
 
-      if (!response.ok) throw new Error('Failed to update');
+  const handleViewKit = (brandKitId: string) => {
+    router.push(`/brand-kit/${brandKitId}`);
+  };
 
-      setBrandKits(kits =>
-        kits.map(kit =>
-          kit.id === id ? { ...kit, is_favorite: !currentFavorite } : kit
-        )
-      );
-
-      toast.success(currentFavorite ? 'Removed from favorites' : 'Added to favorites');
-    } catch (error) {
-      toast.error('Failed to update favorite status');
-    }
+  const handleBusinessCreated = (business: Business) => {
+    // Add the new business to the list
+    setBusinesses((prev) => [
+      {
+        ...business,
+        brand_kit: null,
+        has_brand_kit: false,
+      },
+      ...prev,
+    ]);
+    toast.success('Business created! Now generate a brand kit for it.');
   };
 
   if (loading) {
@@ -93,12 +93,10 @@ export default function DashboardPage() {
         </div>
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[...Array(8)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <Skeleton className="h-48 w-full mb-4" />
-                <Skeleton className="h-6 w-full mb-2" />
-                <Skeleton className="h-4 w-24" />
-              </CardContent>
+            <Card key={i} className="p-6">
+              <Skeleton className="h-48 w-full mb-4" />
+              <Skeleton className="h-6 w-full mb-2" />
+              <Skeleton className="h-4 w-24" />
             </Card>
           ))}
         </div>
@@ -110,83 +108,52 @@ export default function DashboardPage() {
     <div className="container py-12">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Your Brand Kits</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Your Businesses</h1>
           <p className="text-muted-foreground mt-2">
-            Manage and download your generated brand identities
+            Manage your businesses and generate brand kits for each one
           </p>
         </div>
-        <Button onClick={() => router.push('/tools/brand-kit')} size="lg">
+        <Button onClick={() => setShowCreateDialog(true)} size="lg">
           <Plus className="mr-2 h-4 w-4" />
-          Create New
+          Create Business
         </Button>
       </div>
 
-      {brandKits.length === 0 ? (
+      {businesses.length === 0 ? (
         <Card className="p-12 text-center">
           <div className="mx-auto max-w-md space-y-4">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted">
               <Plus className="h-10 w-10 text-muted-foreground" />
             </div>
-            <h2 className="text-2xl font-semibold">No brand kits yet</h2>
+            <h2 className="text-2xl font-semibold">No businesses yet</h2>
             <p className="text-muted-foreground">
-              Create your first brand kit to get started. It only takes a few seconds!
+              Create your first business to get started. Each business can have its own brand
+              kit.
             </p>
-            <Button onClick={() => router.push('/tools/brand-kit')} size="lg" className="mt-4">
+            <Button onClick={() => setShowCreateDialog(true)} size="lg" className="mt-4">
               <Plus className="mr-2 h-4 w-4" />
-              Create Your First Brand Kit
+              Create Your First Business
             </Button>
           </div>
         </Card>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {brandKits.map((kit) => (
-            <Card key={kit.id} className="group hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <div className="relative aspect-square mb-4 overflow-hidden rounded-lg bg-muted">
-                  <img
-                    src={kit.logo_url}
-                    alt={`${kit.business_name} logo`}
-                    className="h-full w-full object-contain p-4"
-                  />
-                  <button
-                    onClick={() => toggleFavorite(kit.id, kit.is_favorite)}
-                    className="absolute top-2 right-2 p-2 rounded-full bg-background/80 backdrop-blur hover:bg-background transition-colors"
-                    aria-label={kit.is_favorite ? 'Remove from favorites' : 'Add to favorites'}
-                  >
-                    <Star
-                      className={`h-4 w-4 ${
-                        kit.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'
-                      }`}
-                    />
-                  </button>
-                </div>
-                <h3 className="font-semibold text-lg line-clamp-1 mb-1">
-                  {kit.business_name}
-                </h3>
-                {kit.industry && (
-                  <p className="text-sm text-muted-foreground capitalize mb-2">
-                    {kit.industry}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground">
-                  Created {new Date(kit.created_at).toLocaleDateString()}
-                </p>
-              </CardContent>
-              <CardFooter className="flex gap-2 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => router.push(`/brand-kit/${kit.id}`)}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  View
-                </Button>
-              </CardFooter>
-            </Card>
+          {businesses.map((business) => (
+            <BusinessCard
+              key={business.id}
+              business={business}
+              onGenerateKit={handleGenerateKit}
+              onViewKit={handleViewKit}
+            />
           ))}
         </div>
       )}
+
+      <CreateBusinessDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onSuccess={handleBusinessCreated}
+      />
     </div>
   );
 }

@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Loader2, Sparkles, Palette, Type, Tag } from 'lucide-react';
+import { Loader2, Sparkles, Palette, Type, Tag, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { LogoControl } from '@/components/brand-kit-form/logo-control';
 import { ColorPaletteControl } from '@/components/brand-kit-form/color-palette-control';
@@ -22,9 +23,14 @@ import { AdvancedOptions } from '@/components/brand-kit-form/advanced-options';
 import { enhancedBrandKitInputSchema, type EnhancedBrandKitInputType } from '@/lib/validations';
 import type { BrandKit } from '@/types';
 
-export default function HomePage() {
+export default function BrandKitGenerationPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const businessId = searchParams?.get('businessId');
+
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingBusiness, setIsLoadingBusiness] = useState(!!businessId);
+  const [businessError, setBusinessError] = useState<string | null>(null);
 
   const {
     register,
@@ -35,6 +41,7 @@ export default function HomePage() {
   } = useForm<EnhancedBrandKitInputType>({
     resolver: zodResolver(enhancedBrandKitInputSchema),
     defaultValues: {
+      businessId: businessId || '',
       businessName: '',
       businessDescription: '',
       industry: 'tech',
@@ -58,7 +65,71 @@ export default function HomePage() {
   const existingFonts = watch('existingFonts');
   const advancedOptions = watch('advancedOptions');
 
+  // Fetch business data if businessId is provided
+  useEffect(() => {
+    const fetchBusiness = async () => {
+      if (!businessId) {
+        // No business selected - redirect to dashboard
+        toast.error('Please select a business first');
+        router.push('/dashboard');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/businesses/${businessId}`);
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setBusinessError('Business not found');
+          } else if (response.status === 401) {
+            router.push('/sign-in');
+            return;
+          } else {
+            setBusinessError('Failed to load business');
+          }
+          return;
+        }
+
+        const business = await response.json();
+
+        // Check if business already has a brand kit by trying to fetch it
+        try {
+          const brandKitCheck = await fetch(`/api/brand-kits?businessId=${businessId}`);
+          if (brandKitCheck.ok) {
+            const kits = await brandKitCheck.json();
+            if (kits.brandKits && kits.brandKits.length > 0) {
+              toast.error('This business already has a brand kit');
+              router.push(`/brand-kit/${kits.brandKits[0].id}`);
+              return;
+            }
+          }
+        } catch (err) {
+          // Ignore error, allow user to proceed
+        }
+
+        // Pre-fill form with business data
+        setValue('businessId', business.id);
+        setValue('businessName', business.name);
+        setValue('businessDescription', business.description || '');
+        setValue('industry', business.industry || 'tech');
+      } catch (error) {
+        console.error('Error fetching business:', error);
+        setBusinessError('Failed to load business');
+      } finally {
+        setIsLoadingBusiness(false);
+      }
+    };
+
+    fetchBusiness();
+  }, [businessId, router, setValue]);
+
   const onSubmit = async (data: EnhancedBrandKitInputType) => {
+    if (!businessId) {
+      toast.error('Please select a business first');
+      router.push('/dashboard');
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
@@ -89,6 +160,43 @@ export default function HomePage() {
       setIsGenerating(false);
     }
   };
+
+  // Show error state
+  if (businessError) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Card className="max-w-2xl mx-auto p-12 text-center">
+          <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-2xl font-semibold mb-2">Error</h2>
+          <p className="text-muted-foreground mb-6">{businessError}</p>
+          <Button onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading state while fetching business
+  if (isLoadingBusiness) {
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <Skeleton className="h-10 w-3/4 mx-auto" />
+          <Skeleton className="h-6 w-1/2 mx-auto" />
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-full" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-32 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -156,6 +264,7 @@ export default function HomePage() {
                 {...register('businessName')}
                 aria-invalid={errors.businessName ? 'true' : 'false'}
                 aria-describedby={errors.businessName ? 'businessName-error' : undefined}
+                disabled={!!businessId}
               />
               {errors.businessName && (
                 <p id="businessName-error" className="text-sm text-destructive" role="alert">

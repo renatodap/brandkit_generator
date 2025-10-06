@@ -7,12 +7,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requireUser } from '@/lib/supabase/server';
-import { createBusiness, getBusinesses } from '@/lib/services/business-service';
+import { createBusiness, getBusinesses, getBusinessesWithBrandKits } from '@/lib/services/business-service';
 import { createBusinessSchema, listBusinessesSchema } from '@/lib/validations/business';
 
 /**
  * GET /api/businesses
  * List all businesses for authenticated user
+ *
+ * Query params:
+ * - include=brand_kits: Include brand kit data with each business
+ * - limit, offset, sort, order, industry: Standard filtering
  */
 export async function GET(request: NextRequest) {
   try {
@@ -21,6 +25,8 @@ export async function GET(request: NextRequest) {
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
+    const includeBrandKits = searchParams.get('include') === 'brand_kits';
+
     const queryParams = {
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 50,
       offset: searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : 0,
@@ -32,8 +38,10 @@ export async function GET(request: NextRequest) {
     // Validate query parameters
     const validated = listBusinessesSchema.parse(queryParams);
 
-    // Fetch businesses
-    const result = await getBusinesses(user.id, validated);
+    // Fetch businesses with or without brand kits
+    const result = includeBrandKits
+      ? await getBusinessesWithBrandKits(user.id, validated)
+      : await getBusinesses(user.id, validated);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

@@ -283,3 +283,78 @@ export async function isSlugAvailable(
 
   return !data; // If data exists, slug is taken
 }
+
+/**
+ * Get businesses with their associated brand kits (avoids N+1 queries)
+ *
+ * @param userId - User's unique identifier
+ * @param query - Optional filters (industry, sorting, pagination)
+ * @returns List of businesses with brand_kit field populated
+ */
+export async function getBusinessesWithBrandKits(
+  userId: string,
+  query: ListBusinessesQuery = { limit: 50, offset: 0, sort: 'created_at', order: 'desc' }
+): Promise<{
+  businesses: Array<Business & { brand_kit: any | null; has_brand_kit: boolean }>;
+  total: number;
+  limit: number;
+  offset: number;
+}> {
+  const supabase = await createClient();
+
+  let queryBuilder = supabase
+    .from('businesses')
+    .select(
+      `
+      *,
+      brand_kits (
+        id,
+        business_name,
+        logo_url,
+        logo_svg,
+        colors,
+        fonts,
+        tagline,
+        industry,
+        is_favorite,
+        created_at,
+        updated_at
+      )
+    `,
+      { count: 'exact' }
+    )
+    .eq('user_id', userId); // RLS policy will also enforce this
+
+  // Apply filters
+  if (query.industry) {
+    queryBuilder = queryBuilder.eq('industry', query.industry);
+  }
+
+  // Apply sorting
+  queryBuilder = queryBuilder.order(query.sort, { ascending: query.order === 'asc' });
+
+  // Apply pagination
+  queryBuilder = queryBuilder.range(query.offset, query.offset + query.limit - 1);
+
+  const { data, error, count } = await queryBuilder;
+
+  if (error) {
+    console.error('Error fetching businesses with brand kits:', error);
+    throw new Error(`Failed to fetch businesses: ${error.message}`);
+  }
+
+  // Transform data to flatten brand_kits array (since it's 1:1, we only get first item)
+  const businesses = (data || []).map((business: any) => ({
+    ...business,
+    brand_kit: business.brand_kits?.[0] || null,
+    has_brand_kit: !!business.brand_kits?.[0],
+    brand_kits: undefined, // Remove the array
+  }));
+
+  return {
+    businesses,
+    total: count || 0,
+    limit: query.limit,
+    offset: query.offset,
+  };
+}
