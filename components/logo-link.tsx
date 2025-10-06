@@ -6,14 +6,12 @@ import { createClient } from '@/lib/supabase/client';
 
 export function LogoLink() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setIsAuthenticated(!!user);
-      setLoading(false);
     };
 
     checkAuth();

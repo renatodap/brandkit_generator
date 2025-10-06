@@ -23,7 +23,7 @@ export default function InvitationPage() {
   const [user, setUser] = useState<any>(null);
   const [processing, setProcessing] = useState(false);
 
-  const token = params.token as string;
+  const token = params['token'] as string;
 
   useEffect(() => {
     checkAuth();
@@ -89,7 +89,8 @@ export default function InvitationPage() {
 
       // Redirect to business dashboard
       setTimeout(() => {
-        router.push(`/dashboard/${invitation?.business.slug}`);
+        const slug = invitation?.business.slug || '';
+        router.push(`/dashboard/${slug}` as any);
       }, 1500);
     } catch (error) {
       console.error('Failed to accept invitation:', error);

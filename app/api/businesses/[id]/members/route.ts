@@ -47,15 +47,27 @@ export async function GET(
       .eq('id', businessId)
       .single();
 
+    // Type assertion for the joined user data
+    type BusinessWithUser = {
+      user_id: string;
+      user: {
+        id: string;
+        email: string;
+        raw_user_meta_data: Record<string, any>;
+      };
+    };
+
+    const typedBusiness = business as BusinessWithUser | null;
+
     return NextResponse.json({
       members,
-      owner: business
+      owner: typedBusiness
         ? {
-            id: business.user_id,
+            id: typedBusiness.user_id,
             user: {
-              id: business.user_id,
-              email: (business.user as any).email,
-              user_metadata: (business.user as any).raw_user_meta_data,
+              id: typedBusiness.user.id,
+              email: typedBusiness.user.email,
+              user_metadata: typedBusiness.user.raw_user_meta_data,
             },
           }
         : null,

@@ -16,8 +16,8 @@ import type {
   AccessRequestWithUser,
 } from '@/types/team';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY!;
+const supabaseUrl = process.env['NEXT_PUBLIC_SUPABASE_URL']!;
+const supabaseServiceKey = process.env['SUPABASE_SERVICE_KEY']!;
 
 // Admin client for operations that bypass RLS
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -319,14 +319,30 @@ export async function getInvitationByToken(
     return null;
   }
 
+  // Type assertion for complex Supabase join query
+  const typedData = data as any;
+
   return {
-    ...data,
+    id: typedData.id,
+    business_id: typedData.business_id,
+    email: typedData.email,
+    role: typedData.role,
+    invited_by: typedData.invited_by,
+    token: typedData.token,
+    status: typedData.status,
+    expires_at: typedData.expires_at,
+    created_at: typedData.created_at,
+    updated_at: typedData.updated_at,
     inviter: {
-      id: data.inviter.id,
-      email: data.inviter.email,
-      user_metadata: data.inviter.raw_user_meta_data,
+      id: typedData.inviter.id,
+      email: typedData.inviter.email,
+      user_metadata: typedData.inviter.raw_user_meta_data,
     },
-    business: data.business,
+    business: {
+      id: typedData.business.id,
+      name: typedData.business.name,
+      slug: typedData.business.slug,
+    },
   } as InvitationWithDetails;
 }
 
