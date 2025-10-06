@@ -74,7 +74,7 @@ export function HeaderAuth() {
         size="sm"
         onClick={() => router.push('/sign-up')}
       >
-        Sign Up
+        Get Started
       </Button>
     </div>
   );
