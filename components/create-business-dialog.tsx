@@ -220,7 +220,7 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating || !slugAvailable}>
+            <Button type="submit" disabled={isCreating || checkingSlug || slugAvailable !== true}>
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
