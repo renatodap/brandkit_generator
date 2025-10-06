@@ -34,7 +34,8 @@ async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
   const memberIds = memberBusinesses?.map(m => m.business_id) || [];
 
   // Combine and deduplicate
-  return [...new Set([...ownedIds, ...memberIds])];
+  const combined = [...ownedIds, ...memberIds];
+  return Array.from(new Set(combined));
 }
 
 /**
