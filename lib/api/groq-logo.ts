@@ -154,37 +154,55 @@ export async function generateSVGCode(
 ): Promise<string> {
   const groq = getGroqClient();
 
-  const systemPrompt = `You are an expert SVG code generator. Generate clean, semantic SVG code following strict constraints:
+  const systemPrompt = `You are a professional logo designer creating ICONIC, MEMORABLE SVG logos.
 
-ALLOWED PRIMITIVES ONLY:
-- rect, circle, ellipse, line, polyline, polygon
-- path (maximum 5 commands per path)
+DESIGN PRINCIPLES (CRITICAL):
+- Create logos that are INSTANTLY RECOGNIZABLE and DISTINCTIVE
+- Use STRONG GEOMETRIC SHAPES with CLEAN LINES
+- Follow RULE OF THIRDS for balanced composition
+- ONE PRIMARY FOCAL POINT - clear visual hierarchy
+- Use NEGATIVE SPACE creatively
+- SYMMETRY or intentional asymmetry only
+- Must be SCALABLE (recognizable at 16px and 512px)
 
-REQUIREMENTS:
-- 512x512 viewBox="0 0 512 512"
-- Semantic IDs for all elements (e.g., id="icon-mountain-peak")
-- Comments explaining each major component
-- Clean, well-formatted code
-- No text elements, no gradients, no filters
-- Flat design aesthetic
+TECHNICAL CONSTRAINTS:
+- viewBox="0 0 200 200" (consistent sizing)
+- ONLY use: <rect>, <circle>, <ellipse>, <polygon>, <path>
+- <path>: Maximum 5 commands (M, L, Q, C, Z)
+- Group related elements: <g id="...">
+- 2-8 shapes total (not too simple, not too complex)
+- Round corners (rx/ry) for modern feel
+- NO text, gradients, filters, animations
+
+QUALITY STANDARDS:
+- Logo must be MEMORABLE - can you draw it from memory?
+- Must work in BLACK & WHITE (test monochrome)
+- PROFESSIONAL - suitable for Fortune 500
+- DISTINCTIVE - doesn't look generic
 
 OUTPUT:
-Return ONLY the SVG code, nothing else. Start with <svg and end with </svg>.`;
+Return ONLY valid SVG code. Start with <svg and end with </svg>.`;
 
-  const userPrompt = `Generate SVG logo code based on this specification:
+  const userPrompt = `Create an ICONIC, PROFESSIONAL logo based on this spec:
 
 SCENE: ${template.sceneLevel}
 OBJECTS: ${template.objectLevel}
 LAYOUT: ${template.layoutLevel}
 
-COLOR PALETTE:
+COLORS (use strategically):
 Primary: ${colorPalette.primary}
 Secondary: ${colorPalette.secondary}
 Accent: ${colorPalette.accent}
 
-Create a professional, minimalist logo using ONLY basic SVG primitives.
-Focus on geometric simplicity and visual balance.
-Return ONLY the SVG code.`;
+CRITICAL REQUIREMENTS:
+1. Make it INSTANTLY RECOGNIZABLE - could someone sketch this from memory?
+2. ONE clear focal point - don't overcomplicate
+3. Use NEGATIVE SPACE - what you DON'T draw matters
+4. GEOMETRIC and BALANCED - use circles, squares, triangles as base
+5. Must look professional in BLACK & WHITE
+6. Think: Apple, Nike, Airbnb - SIMPLE but ICONIC
+
+Return ONLY the SVG code. Make it MEMORABLE!`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -234,30 +252,38 @@ export async function refineSVGCode(
 ): Promise<string> {
   const groq = getGroqClient();
 
-  const systemPrompt = `You are an expert SVG code reviewer and optimizer. Analyze SVG code for:
-1. Visual balance and composition
-2. Proper use of viewBox and coordinates
-3. Color harmony and contrast
-4. Geometric precision
-5. Code cleanliness and semantics
+  const systemPrompt = `You are a senior brand designer reviewing logo quality.
 
-Provide improved SVG code with fixes. Use ONLY basic primitives: rect, circle, ellipse, line, polyline, polygon, path (max 5 commands).`;
+EVALUATION CRITERIA:
+1. MEMORABILITY - Is it instantly recognizable? Can you draw it from memory?
+2. VISUAL BALANCE - Proper use of space, symmetry, rule of thirds?
+3. ICONIC QUALITY - Does it have a strong, clear focal point?
+4. SIMPLICITY - Is it clean and geometric, or cluttered?
+5. PROFESSIONAL - Would this work for a Fortune 500 company?
+6. SCALABILITY - Does it work at 16px AND 512px?
+7. MONOCHROME TEST - Does it work in pure black & white?
 
-  const userPrompt = `Review and improve this SVG logo code (iteration ${iteration}/2):
+Your job: FIX what's broken and make it ICONIC.
 
-ORIGINAL INTENT: ${originalPrompt}
+Use ONLY: rect, circle, ellipse, polygon, path (max 5 commands per path).
+Return improved SVG that's MORE memorable, MORE balanced, MORE professional.`;
+
+  const userPrompt = `Review this logo and make it MORE ICONIC (iteration ${iteration}/2):
+
+TARGET: ${originalPrompt}
 
 CURRENT SVG:
 ${svgCode}
 
-Identify issues and return IMPROVED SVG code:
-- Fix visual imbalances
-- Improve proportions
-- Enhance geometric precision
-- Maintain minimalist aesthetic
-- Keep semantic structure
+IMPROVE IT:
+✓ Make it MORE MEMORABLE - simpler, stronger shapes
+✓ Add VISUAL IMPACT - one clear focal point
+✓ Fix BALANCE - rule of thirds, symmetry
+✓ Enhance NEGATIVE SPACE - what you remove matters
+✓ Ensure BLACK & WHITE version works perfectly
+✓ Think: Apple, Nike, Twitter - SIMPLE but UNFORGETTABLE
 
-Return ONLY the improved SVG code.`;
+Return ONLY the improved SVG code. Make it ICONIC!`;
 
   try {
     const completion = await groq.chat.completions.create({
@@ -297,18 +323,32 @@ export async function reviewSVGQuality(
 ): Promise<{ score: number; feedback: string }> {
   const groq = getGroqClient();
 
-  const systemPrompt = `You are a professional brand design critic. Rate this SVG logo on a scale of 1-10 and provide brief feedback.
+  const systemPrompt = `You are a brutally honest logo design critic. Rate logos like a professional brand agency would.
 
-CRITERIA:
-- Visual balance and composition (1-10)
-- Brand appropriateness (1-10)
-- Geometric precision (1-10)
-- Minimalist aesthetic (1-10)
-- Professional quality (1-10)
+RATING SCALE (BE STRICT):
+10/10 - Iconic (Apple, Nike, Airbnb level) - instantly memorable, perfect execution
+9/10 - Excellent - very strong, one minor improvement possible
+8/10 - Great - professional, memorable, clean
+7/10 - Good - solid, works well, nothing special
+6/10 - Acceptable - functional but forgettable
+5/10 - Mediocre - generic, lacks personality
+4/10 - Below Average - cluttered or unclear
+3/10 - Poor - major issues
+2/10 - Very Poor - barely functional
+1/10 - Terrible - complete failure
+
+CRITICAL QUESTIONS:
+✓ Can someone sketch this from memory after one glance?
+✓ Does it have ONE clear, strong focal point?
+✓ Would it work in black & white?
+✓ Is it scalable (16px to 512px)?
+✓ Is it DISTINCTIVE or generic?
+
+BE HARSH - most logos should score 6-8. Only give 9-10 to truly exceptional work.
 
 Output format:
-SCORE: [average score]/10
-FEEDBACK: [2-3 sentences]`;
+SCORE: [number]/10
+FEEDBACK: [2-3 sentences explaining the score]`;
 
   const userPrompt = `Review this SVG logo for "${businessName}":
 
@@ -345,7 +385,49 @@ Provide your score and feedback.`;
 }
 
 /**
- * Complete multi-stage SVG logo generation workflow
+ * Quality threshold configuration
+ */
+const QUALITY_THRESHOLD = 7.0; // Minimum acceptable quality score
+const MAX_REGENERATION_ATTEMPTS = 3; // Maximum attempts to generate a quality logo
+
+/**
+ * Validates SVG code for basic sanity checks
+ */
+function validateSVGCode(svgCode: string): { valid: boolean; error?: string } {
+  // Check if SVG has viewBox
+  if (!svgCode.includes('viewBox')) {
+    return { valid: false, error: 'Missing viewBox attribute' };
+  }
+
+  // Check if SVG has at least some shapes
+  const hasShapes =
+    svgCode.includes('<rect') ||
+    svgCode.includes('<circle') ||
+    svgCode.includes('<ellipse') ||
+    svgCode.includes('<path') ||
+    svgCode.includes('<polygon') ||
+    svgCode.includes('<polyline');
+
+  if (!hasShapes) {
+    return { valid: false, error: 'No visual shapes found in SVG' };
+  }
+
+  // Check if SVG is not too simple (e.g., just one shape)
+  const shapeCount = (svgCode.match(/<(rect|circle|ellipse|path|polygon|polyline)/g) || []).length;
+  if (shapeCount < 2) {
+    return { valid: false, error: 'SVG too simple (needs at least 2 shapes)' };
+  }
+
+  // Check if SVG is too complex (likely garbage)
+  if (shapeCount > 50) {
+    return { valid: false, error: 'SVG too complex (too many shapes)' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Complete multi-stage SVG logo generation workflow with quality control
  */
 export async function generateLogoWithGroq(params: {
   businessName: string;
@@ -375,34 +457,89 @@ export async function generateLogoWithGroq(params: {
 }> {
   const { businessName, description, industry, symbols, colorPalette } = params;
 
-  console.log('🎨 Stage 1: Generating logo template with Llama 3.3 70B...');
-  const template = await generateLogoTemplate({
-    businessName,
-    description,
-    industry,
-    symbols,
-  });
+  let attempt = 0;
+  let bestResult: {
+    svgCode: string;
+    template: any;
+    quality: { score: number; feedback: string };
+  } | null = null;
 
-  console.log('💻 Stage 2: Generating SVG code with Llama 3.1 8B...');
-  let svgCode = await generateSVGCode(template, colorPalette);
+  while (attempt < MAX_REGENERATION_ATTEMPTS) {
+    attempt++;
+    console.log(`\n🎯 Logo generation attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS}...`);
 
-  console.log('🔍 Stage 3: Refining SVG (2 iterations)...');
-  const originalPrompt = `${businessName} - ${description} - ${symbols.primary} with ${symbols.secondary}`;
+    try {
+      console.log('🎨 Stage 1: Generating logo template with Llama 3.3 70B...');
+      const template = await generateLogoTemplate({
+        businessName,
+        description,
+        industry,
+        symbols,
+      });
 
-  // Refinement iteration 1
-  svgCode = await refineSVGCode(svgCode, originalPrompt, 1);
+      console.log('💻 Stage 2: Generating SVG code with Llama 3.1 8B...');
+      let svgCode = await generateSVGCode(template, colorPalette);
 
-  // Refinement iteration 2
-  svgCode = await refineSVGCode(svgCode, originalPrompt, 2);
+      // Validate basic SVG structure
+      const validation = validateSVGCode(svgCode);
+      if (!validation.valid) {
+        console.warn(`❌ SVG validation failed: ${validation.error}`);
+        continue; // Try again
+      }
 
-  console.log('✅ Stage 4: Quality review...');
-  const quality = await reviewSVGQuality(svgCode, businessName);
+      console.log('🔍 Stage 3: Refining SVG (2 iterations)...');
+      const originalPrompt = `${businessName} - ${description} - ${symbols.primary} with ${symbols.secondary}`;
 
-  console.log(`📊 Quality score: ${quality.score}/10`);
+      // Refinement iteration 1
+      svgCode = await refineSVGCode(svgCode, originalPrompt, 1);
 
-  return {
-    svgCode,
-    template,
-    quality,
-  };
+      // Refinement iteration 2
+      svgCode = await refineSVGCode(svgCode, originalPrompt, 2);
+
+      // Re-validate after refinement
+      const refinedValidation = validateSVGCode(svgCode);
+      if (!refinedValidation.valid) {
+        console.warn(`❌ Refined SVG validation failed: ${refinedValidation.error}`);
+        continue; // Try again
+      }
+
+      console.log('✅ Stage 4: Quality review...');
+      const quality = await reviewSVGQuality(svgCode, businessName);
+
+      console.log(`📊 Quality score: ${quality.score}/10`);
+
+      // Store this result if it's the best so far
+      if (!bestResult || quality.score > bestResult.quality.score) {
+        bestResult = { svgCode, template, quality };
+      }
+
+      // If quality is above threshold, we're done!
+      if (quality.score >= QUALITY_THRESHOLD) {
+        console.log(`✨ Quality threshold met (${quality.score} >= ${QUALITY_THRESHOLD})! Using this logo.`);
+        return { svgCode, template, quality };
+      }
+
+      console.warn(
+        `⚠️  Quality below threshold (${quality.score} < ${QUALITY_THRESHOLD}). ${attempt < MAX_REGENERATION_ATTEMPTS ? 'Regenerating...' : 'Using best result.'}`
+      );
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} failed:`, error);
+      // Continue to next attempt
+    }
+  }
+
+  // If we exhausted all attempts, return the best result we got
+  if (bestResult) {
+    console.log(
+      `⚠️  Using best result from ${MAX_REGENERATION_ATTEMPTS} attempts (score: ${bestResult.quality.score}/10)`
+    );
+    return bestResult;
+  }
+
+  // If all attempts failed, throw error
+  throw new GroqLogoError(
+    'Failed to generate acceptable logo after maximum attempts',
+    500,
+    'MAX_ATTEMPTS_EXCEEDED'
+  );
 }
