@@ -255,13 +255,14 @@ export async function getBrandKitByShareToken(token: string) {
   }
 
   // Increment share token view count
-  await supabase
-    .from('share_tokens')
-    .update({ view_count: supabase.rpc('increment') })
-    .eq('token', token)
-    .catch(() => {
-      // Ignore error
-    });
+  try {
+    await supabase
+      .from('share_tokens')
+      .update({ view_count: supabase.rpc('increment') })
+      .eq('token', token);
+  } catch {
+    // Ignore error
+  }
 
   return brandKit;
 }
