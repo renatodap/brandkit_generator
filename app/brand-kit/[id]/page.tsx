@@ -37,7 +37,7 @@ export default function BrandKitPage() {
 
   useEffect(() => {
     checkAuthAndFetch();
-  }, [params.id]);
+  }, [params['id']]);
 
   const checkAuthAndFetch = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -52,7 +52,7 @@ export default function BrandKitPage() {
 
   const fetchBrandKit = async () => {
     try {
-      const response = await fetch(`/api/brand-kits/${params.id}`);
+      const response = await fetch(`/api/brand-kits/${params['id']}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -94,7 +94,7 @@ export default function BrandKitPage() {
 
   const handleShare = async () => {
     try {
-      const response = await fetch(`/api/brand-kits/${params.id}/share`, {
+      const response = await fetch(`/api/brand-kits/${params['id']}/share`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -121,7 +121,7 @@ export default function BrandKitPage() {
     }
 
     try {
-      const response = await fetch(`/api/brand-kits/${params.id}`, {
+      const response = await fetch(`/api/brand-kits/${params['id']}`, {
         method: 'DELETE',
       });
 

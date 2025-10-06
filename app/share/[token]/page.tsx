@@ -32,11 +32,11 @@ export default function SharePage() {
 
   useEffect(() => {
     fetchSharedBrandKit();
-  }, [params.token]);
+  }, [params['token']]);
 
   const fetchSharedBrandKit = async () => {
     try {
-      const response = await fetch(`/api/share/${params.token}`);
+      const response = await fetch(`/api/share/${params['token']}`);
 
       if (!response.ok) {
         if (response.status === 404) {

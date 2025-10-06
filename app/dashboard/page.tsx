@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, Download, Eye, Plus } from 'lucide-react';
+import { Star, Eye, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface BrandKit {
@@ -22,7 +22,6 @@ interface BrandKit {
 export default function DashboardPage() {
   const [brandKits, setBrandKits] = useState<BrandKit[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -38,7 +37,6 @@ export default function DashboardPage() {
       return;
     }
 
-    setUser(user);
     fetchBrandKits();
   };
 
