@@ -17,6 +17,7 @@ export default function ResultsPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
+  const [regeneratingComponent, setRegeneratingComponent] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('brandKit');
@@ -81,6 +82,65 @@ export default function ResultsPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to regenerate brand kit');
     } finally {
       setIsRegenerating(false);
+    }
+  };
+
+  const regenerateComponent = async (component: 'logo' | 'colors' | 'fonts' | 'tagline') => {
+    if (!brandKit) return;
+
+    setRegeneratingComponent(component);
+    const componentLabels = {
+      logo: 'Logo',
+      colors: 'Color palette',
+      fonts: 'Typography',
+      tagline: 'Tagline',
+    };
+    toast.info(`Regenerating ${componentLabels[component]}...`);
+
+    try {
+      const response = await fetch('/api/regenerate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          component,
+          brandKit: {
+            businessName: brandKit.businessName,
+            businessDescription: brandKit.businessDescription,
+            industry: brandKit.industry,
+            colors: brandKit.colors,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to regenerate ${component}`);
+      }
+
+      const updatedComponent = await response.json();
+
+      // Merge the updated component with existing brand kit
+      const updatedBrandKit = {
+        ...brandKit,
+        ...updatedComponent,
+        justifications: {
+          ...brandKit.justifications,
+          ...updatedComponent.justifications,
+        },
+      };
+
+      // Update state and localStorage
+      setBrandKit(updatedBrandKit);
+      localStorage.setItem('brandKit', JSON.stringify(updatedBrandKit));
+
+      toast.success(`${componentLabels[component]} regenerated successfully!`);
+    } catch (error) {
+      console.error(`${component} regeneration error:`, error);
+      toast.error(error instanceof Error ? error.message : `Failed to regenerate ${component}`);
+    } finally {
+      setRegeneratingComponent(null);
     }
   };
 
@@ -422,8 +482,34 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
         {/* Logo & Tagline */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl">{brandKit.businessName}</CardTitle>
-            <CardDescription className="text-lg">{brandKit.tagline}</CardDescription>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <CardTitle className="text-3xl">{brandKit.businessName}</CardTitle>
+                <CardDescription className="text-lg mt-2">{brandKit.tagline}</CardDescription>
+              </div>
+              <div className="flex gap-2 ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => regenerateComponent('tagline')}
+                  disabled={regeneratingComponent === 'tagline'}
+                  aria-label="Regenerate tagline"
+                >
+                  <RefreshCw className={`h-4 w-4 ${regeneratingComponent === 'tagline' ? 'animate-spin' : ''}`} />
+                </Button>
+                {brandKit.logo?.url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => regenerateComponent('logo')}
+                    disabled={regeneratingComponent === 'logo'}
+                    aria-label="Regenerate logo"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${regeneratingComponent === 'logo' ? 'animate-spin' : ''}`} />
+                  </Button>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             {brandKit.logo?.url ? (
@@ -459,8 +545,21 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
         {/* Color Palette */}
         <Card>
           <CardHeader>
-            <CardTitle>Color Palette</CardTitle>
-            <CardDescription>Click any color to copy the hex code</CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Color Palette</CardTitle>
+                <CardDescription>Click any color to copy the hex code</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => regenerateComponent('colors')}
+                disabled={regeneratingComponent === 'colors'}
+                aria-label="Regenerate color palette"
+              >
+                <RefreshCw className={`h-4 w-4 ${regeneratingComponent === 'colors' ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -503,8 +602,21 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
         {/* Typography */}
         <Card>
           <CardHeader>
-            <CardTitle>Typography</CardTitle>
-            <CardDescription>Font pairing for your brand</CardDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <CardTitle>Typography</CardTitle>
+                <CardDescription>Font pairing for your brand</CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => regenerateComponent('fonts')}
+                disabled={regeneratingComponent === 'fonts'}
+                aria-label="Regenerate typography"
+              >
+                <RefreshCw className={`h-4 w-4 ${regeneratingComponent === 'fonts' ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Load fonts */}
