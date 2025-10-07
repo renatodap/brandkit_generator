@@ -20,6 +20,7 @@ import { svgToDataURL, normalizeSVG, optimizeSVG } from '@/lib/api/logo-utils';
 import { enhancePrompt } from '@/lib/utils/prompt-enhancement';
 import { getUser } from '@/lib/supabase/server';
 import { createBrandKit } from '@/lib/services/brand-kit-service';
+import { buildKnowledgeContext } from '@/lib/services/business-collection-service';
 import type { BrandKit } from '@/types';
 
 /**
@@ -75,22 +76,47 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Log generation start
     logger.info('Starting brand kit generation', { businessName, logoOption, colorOption, fontOption, hasNotes: !!notes, hasAdvancedOptions: !!advancedOptions });
 
+    // Fetch knowledge from recall-notebook if business has linked collections
+    let knowledgeContext = '';
+    if (businessId) {
+      try {
+        const user = await getUser();
+        if (user) {
+          logger.info('Fetching recall-notebook knowledge', { businessId });
+          knowledgeContext = await buildKnowledgeContext(businessId, user.id);
+          if (knowledgeContext) {
+            logger.info('Knowledge context fetched', { businessId, contextLength: knowledgeContext.length });
+          } else {
+            logger.info('No knowledge context available', { businessId });
+          }
+        }
+      } catch (error) {
+        // Fallback: Continue without knowledge if fetch fails
+        logger.warn('Failed to fetch knowledge context, continuing without it', { businessId, error: (error as Error).message });
+      }
+    }
+
+    // Enhance description with knowledge context
+    const enhancedBusinessDescription = knowledgeContext
+      ? `${businessDescription || ''}\n\n${knowledgeContext}`
+      : businessDescription || '';
+
     // Step 1: Extract brand insights in parallel
     logger.info('Extracting brand insights', { businessName });
     const [symbolsResult, colorPrefsResult, personalityResult] = await Promise.allSettled([
       extractLogoSymbols({
         businessName,
-        description: businessDescription || '',
+        description: enhancedBusinessDescription,
         industry,
       }),
       extractColorPreferences({
         businessName,
-        description: businessDescription || '',
+        description: enhancedBusinessDescription,
         industry,
       }),
       extractBrandPersonality({
         businessName,
-        description: businessDescription || '',
+        description: enhancedBusinessDescription,
         industry,
       }),
     ]);
@@ -130,11 +156,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       logger.info('Generating color palette', { businessName });
       try {
         // Enhance the generation with notes and advanced options
-        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
+        const finalDescription = enhancePrompt(enhancedBusinessDescription, notes, advancedOptions);
 
         return await generateColorPalette({
           businessName,
-          description: enhancedDescription,
+          description: finalDescription,
           industry,
         });
       } catch (error) {
@@ -181,11 +207,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         logger.info('Generating SVG logo with Groq (Llama 3.3 + 3.1)', { businessName });
 
         // Enhance description with notes and advanced options
-        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
+        const finalDescription = enhancePrompt(enhancedBusinessDescription, notes, advancedOptions);
 
         const result = await generateLogoWithGroq({
           businessName,
-          description: enhancedDescription,
+          description: finalDescription,
           industry,
           symbols,
           colorPalette: {
@@ -234,22 +260,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
 
         logger.info('Generating font pairing', { businessName, industry });
-        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
+        const finalDescription = enhancePrompt(enhancedBusinessDescription, notes, advancedOptions);
 
         return getFontPairing({
           industry,
           businessName,
-          description: enhancedDescription,
+          description: finalDescription,
         });
       })(),
       // Tagline (always generate with enhancement)
       (async () => {
         logger.info('Generating tagline', { businessName });
-        const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
+        const finalDescription = enhancePrompt(enhancedBusinessDescription, notes, advancedOptions);
 
         return generateTagline({
           businessName,
-          description: enhancedDescription,
+          description: finalDescription,
           industry,
         });
       })(),
@@ -317,7 +343,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Step 4: Generate justifications in parallel (with enhanced context)
     logger.info('Generating justifications', { businessName });
     const enhancedDescriptionForJustifications = enhancePrompt(
-      businessDescription || '',
+      enhancedBusinessDescription,
       notes,
       advancedOptions
     );
