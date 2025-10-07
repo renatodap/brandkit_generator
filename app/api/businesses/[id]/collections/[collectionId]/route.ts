@@ -13,7 +13,7 @@ import { unlinkCollectionFromBusiness } from '@/lib/services/business-collection
  * Unlink a collection from a business
  */
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string; collectionId: string } }
 ) {
   try {
