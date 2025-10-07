@@ -113,8 +113,9 @@ supabase db execute --file fix_rls_recursion_v3_SIMPLE.sql
 
 **Team Member Access:**
 - Handled at APPLICATION level, not RLS
-- `getBusinesses()` function queries business_members first, then businesses
-- Already implemented and working! ✅
+- `getBusinesses()` and `getBusinessesWithBrandKits()` updated to work with owner-only RLS
+- Team member queries removed (TODO: Re-implement at application level)
+- Currently: Owner-only access working ✅
 
 ---
 
