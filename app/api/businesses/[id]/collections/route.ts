@@ -22,7 +22,7 @@ const linkCollectionSchema = z.object({
  * Get all collections linked to a business
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
