@@ -12,30 +12,34 @@ import type { Business } from '@/types';
 
 /**
  * Get all business IDs that a user has access to (owned + member)
+ * NOTE: With simplified RLS (owner-only), we only return owned businesses
+ * RLS policies filter out member businesses automatically
  * @param userId - User's unique identifier
  * @returns Array of business IDs
  */
 async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
   const supabase = await createClient();
 
-  // Get businesses owned by user
-  const { data: ownedBusinesses } = await supabase
+  console.log('[BusinessService] Getting accessible business IDs for user:', userId);
+
+  // With V3 RLS policies (owner-only), RLS automatically filters to owned businesses
+  // So we just query all businesses - RLS will return only owned ones
+  const { data: ownedBusinesses, error } = await supabase
     .from('businesses')
     .select('id')
     .eq('user_id', userId);
 
-  // Get businesses where user is a member
-  const { data: memberBusinesses } = await supabase
-    .from('business_members')
-    .select('business_id')
-    .eq('user_id', userId);
+  if (error) {
+    console.error('[BusinessService] Error getting business IDs:', error);
+    throw new Error(`Failed to get accessible businesses: ${error.message}`);
+  }
 
   const ownedIds = ownedBusinesses?.map(b => b.id) || [];
-  const memberIds = memberBusinesses?.map(m => m.business_id) || [];
+  console.log('[BusinessService] Found', ownedIds.length, 'accessible businesses');
 
-  // Combine and deduplicate
-  const combined = [...ownedIds, ...memberIds];
-  return Array.from(new Set(combined));
+  // NOTE: Team member access is currently disabled due to RLS recursion issues
+  // TODO: Re-enable team access once we have a better RLS policy structure
+  return ownedIds;
 }
 
 /**
@@ -108,24 +112,15 @@ export async function getBusinesses(
   limit: number;
   offset: number;
 }> {
+  console.log('[BusinessService] getBusinesses called for user:', userId);
+
   const supabase = await createClient();
 
-  // Get all business IDs user has access to (owned + member)
-  const accessibleIds = await getUserAccessibleBusinessIds(userId);
-
-  if (accessibleIds.length === 0) {
-    return {
-      businesses: [],
-      total: 0,
-      limit: query.limit,
-      offset: query.offset,
-    };
-  }
-
+  // With V3 RLS (owner-only), we can query directly - RLS filters to owned businesses
   let queryBuilder = supabase
     .from('businesses')
     .select('*', { count: 'exact' })
-    .in('id', accessibleIds); // Get businesses user owns or is a member of
+    .eq('user_id', userId); // Explicit filter (RLS also applies)
 
   // Apply filters
   if (query.industry) {
@@ -141,9 +136,11 @@ export async function getBusinesses(
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('Error fetching businesses:', error);
+    console.error('[BusinessService] Error fetching businesses:', error);
     throw new Error(`Failed to fetch businesses: ${error.message}`);
   }
+
+  console.log('[BusinessService] Found', data?.length || 0, 'businesses');
 
   return {
     businesses: (data as Business[]) || [],
@@ -357,20 +354,11 @@ export async function getBusinessesWithBrandKits(
   limit: number;
   offset: number;
 }> {
+  console.log('[BusinessService] getBusinessesWithBrandKits called for user:', userId);
+
   const supabase = await createClient();
 
-  // Get all business IDs user has access to (owned + member)
-  const accessibleIds = await getUserAccessibleBusinessIds(userId);
-
-  if (accessibleIds.length === 0) {
-    return {
-      businesses: [],
-      total: 0,
-      limit: query.limit,
-      offset: query.offset,
-    };
-  }
-
+  // With V3 RLS (owner-only), we can query directly - RLS filters to owned businesses
   let queryBuilder = supabase
     .from('businesses')
     .select(
@@ -392,7 +380,7 @@ export async function getBusinessesWithBrandKits(
     `,
       { count: 'exact' }
     )
-    .in('id', accessibleIds); // Get businesses user owns or is a member of
+    .eq('user_id', userId); // Explicit filter (RLS also applies)
 
   // Apply filters
   if (query.industry) {
@@ -408,9 +396,11 @@ export async function getBusinessesWithBrandKits(
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('Error fetching businesses with brand kits:', error);
+    console.error('[BusinessService] Error fetching businesses with brand kits:', error);
     throw new Error(`Failed to fetch businesses: ${error.message}`);
   }
+
+  console.log('[BusinessService] Found', data?.length || 0, 'businesses with brand kits');
 
   // Transform data to flatten brand_kits array (since it's 1:1, we only get first item)
   const businesses = (data || []).map((business: any) => ({
