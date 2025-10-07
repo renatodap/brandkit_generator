@@ -100,7 +100,7 @@ export function RecallApiKeyDialog({ hasApiKey = false, onSuccess }: RecallApiKe
               disabled={loading}
             />
             <p className="text-xs text-muted-foreground">
-              Your API key is encrypted and stored securely. It's used to fetch collections from
+              Your API key is encrypted and stored securely. It&apos;s used to fetch collections from
               recall-notebook.
             </p>
           </div>

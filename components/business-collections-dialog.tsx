@@ -4,7 +4,7 @@
  * Dialog for managing recall-notebook collections linked to a business
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -49,13 +49,7 @@ export function BusinessCollectionsDialog({
   const [hasApiKey, setHasApiKey] = useState(false);
 
   // Check if user has API key
-  useEffect(() => {
-    if (open) {
-      checkApiKey();
-    }
-  }, [open]);
-
-  const checkApiKey = async () => {
+  const checkApiKey = useCallback(async () => {
     try {
       const response = await fetch('/api/recall/api-key');
       const data = await response.json();
@@ -70,7 +64,14 @@ export function BusinessCollectionsDialog({
       console.error('Failed to check API key:', error);
       setHasApiKey(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      checkApiKey();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const fetchAvailableCollections = async () => {
     setLoading(true);
@@ -204,7 +205,7 @@ export function BusinessCollectionsDialog({
         <DialogHeader>
           <DialogTitle>Connect Knowledge Base</DialogTitle>
           <DialogDescription>
-            Link recall-notebook collections to enhance {businessName}'s brand generation with your
+            Link recall-notebook collections to enhance {businessName}&apos;s brand generation with your
             company knowledge.
           </DialogDescription>
         </DialogHeader>
