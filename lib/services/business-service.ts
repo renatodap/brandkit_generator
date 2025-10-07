@@ -312,17 +312,16 @@ export async function isSlugAvailable(
     query = query.neq('id', excludeBusinessId);
   }
 
-  const { data, error } = await query.single();
+  // Use maybeSingle() - returns null if 0 rows, row if 1 row, error if 2+ rows
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
-      return true; // Not found = available
-    }
     console.error('Error checking slug availability:', error);
     throw new Error(`Failed to check slug availability: ${error.message}`);
   }
 
-  return !data; // If data exists, slug is taken
+  // If data is null, slug is available; if data exists, slug is taken
+  return !data;
 }
 
 /**

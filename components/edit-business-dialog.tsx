@@ -97,10 +97,24 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
         const response = await fetch(
           `/api/businesses/check-slug?slug=${encodeURIComponent(slug)}&excludeId=${business.id}`
         );
+
+        if (!response.ok) {
+          // Handle API errors gracefully
+          if (response.status === 401) {
+            toast.error('Session expired. Please sign in again.');
+          } else {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            toast.error(errorData.error || 'Failed to check slug availability');
+          }
+          setSlugAvailable(null);
+          return;
+        }
+
         const data = await response.json();
         setSlugAvailable(data.available);
       } catch (error) {
         console.error('Failed to check slug availability:', error);
+        toast.error('Network error. Please check your connection.');
         setSlugAvailable(null);
       } finally {
         setCheckingSlug(false);
@@ -190,6 +204,9 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
             )}
             {!checkingSlug && slug && business && slug !== business.slug && slugAvailable === false && (
               <p className="text-sm text-destructive">✗ Slug is already taken</p>
+            )}
+            {!checkingSlug && slug && slug.length < 2 && (
+              <p className="text-sm text-amber-600">⚠ Slug must be at least 2 characters</p>
             )}
             {errors.slug && (
               <p className="text-sm text-destructive">{errors.slug.message}</p>
