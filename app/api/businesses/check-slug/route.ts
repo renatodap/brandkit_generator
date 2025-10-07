@@ -38,15 +38,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ available }, { status: 200 });
   } catch (error: unknown) {
-    logger.error('Failed to check slug availability', error as Error, { slug: request.nextUrl.searchParams.get('slug') });
-
-    // Check if it's an authentication error
+    // Check if it's an authentication error FIRST
     if (error instanceof Error && error.message === 'Unauthorized') {
+      logger.debug('Unauthenticated slug check attempt', { slug: request.nextUrl.searchParams.get('slug') });
       return NextResponse.json(
         { error: 'Authentication required. Please sign in.' },
         { status: 401 }
       );
     }
+
+    logger.error('Failed to check slug availability', error as Error, { slug: request.nextUrl.searchParams.get('slug') });
 
     return NextResponse.json(
       { error: 'Failed to check slug availability. Please try again.' },

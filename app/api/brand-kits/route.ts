@@ -53,8 +53,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const result = await getBrandKits(user.id, query);
     return NextResponse.json(result);
   } catch (error: unknown) {
+    // Check authentication error FIRST
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      logger.debug('Unauthenticated brand kit list request');
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
     logger.error('Error fetching brand kits', error as Error);
     return NextResponse.json(

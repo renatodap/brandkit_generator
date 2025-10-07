@@ -49,18 +49,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
+    // Check authentication error FIRST
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      logger.debug('Unauthenticated business list request');
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid query parameters', details: error.flatten().fieldErrors },
         { status: 400 }
-      );
-    }
-
-    // Check if it's an authentication error
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json(
-        { error: 'Authentication required. Please sign in.' },
-        { status: 401 }
       );
     }
 
