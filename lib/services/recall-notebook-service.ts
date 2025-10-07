@@ -10,7 +10,6 @@ import type {
   RecallSource,
   RecallContentChunk,
   RecallApiResponse,
-  KnowledgeSearchResult,
 } from '@/types';
 
 /**
