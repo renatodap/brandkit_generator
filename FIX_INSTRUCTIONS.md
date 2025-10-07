@@ -10,9 +10,9 @@ Failed to create business: Database error: infinite recursion detected in policy
 The RLS (Row Level Security) policies on `businesses` and `business_members` tables were referencing each other, creating a circular dependency that causes infinite recursion.
 
 ## Solution
-Run the SQL script **`fix_rls_recursion_v2.sql`** (NOT v1!) in your Supabase database to replace the problematic policies with non-recursive versions.
+Run the SQL script **`fix_rls_recursion_v3_SIMPLE.sql`** in your Supabase database to replace the problematic policies with non-recursive versions.
 
-**IMPORTANT: Use V2, not V1!** The first version still had bugs. V2 is the correct fix.
+**IMPORTANT: Use V3!** V1 and V2 still had recursion bugs. V3 is the FINAL correct fix.
 
 ---
 
@@ -29,7 +29,7 @@ Run the SQL script **`fix_rls_recursion_v2.sql`** (NOT v1!) in your Supabase dat
    - Click "New query"
 
 3. **Copy and Paste the SQL**
-   - Open **`fix_rls_recursion_v2.sql`** from your project folder (NOT v1!)
+   - Open **`fix_rls_recursion_v3_SIMPLE.sql`** from your project folder
    - Copy ALL the contents
    - Paste into the SQL Editor
 
@@ -58,11 +58,11 @@ If you have the Supabase CLI installed:
 # Make sure you're in the project directory
 cd /path/to/brandkit_generator
 
-# Execute the V2 SQL file (NOT v1!)
-npx supabase db execute --file fix_rls_recursion_v2.sql
+# Execute the V3 SQL file (final version!)
+npx supabase db execute --file fix_rls_recursion_v3_SIMPLE.sql
 
 # Or if you have supabase CLI installed globally:
-supabase db execute --file fix_rls_recursion_v2.sql
+supabase db execute --file fix_rls_recursion_v3_SIMPLE.sql
 ```
 
 ---
@@ -92,20 +92,29 @@ supabase db execute --file fix_rls_recursion_v2.sql
 - `business_members_insert_policy` was querying `business_members` FROM WITHIN itself
 - Still caused recursion when creating businesses ❌
 
-### V2 (Correct Fix) ✅
-**Key Principle:**
-- **INSERT/UPDATE/DELETE** policies must NEVER check the same table or tables that reference back
-- **SELECT** policies CAN safely cross-reference (read-only, no recursion risk)
+### V2 Attempt (Still Had Recursion!)
+- `businesses` SELECT policy checked `business_members`
+- When doing `INSERT...RETURNING`, the RETURNING triggers SELECT policy
+- SELECT policy checks business_members, which checks businesses, causing recursion ❌
 
-**Businesses Policies:**
-- INSERT: `auth.uid() = user_id` only (ZERO external references)
-- SELECT: Owner OR member (safe: read-only check of business_members)
-- UPDATE/DELETE: Owner only (no external references)
+### V3 (FINAL FIX) ✅
+**Key Insight:**
+- Even SELECT policies can cause recursion when used with `INSERT...RETURNING`
+- Solution: ZERO cross-table references in businesses table policies
+
+**Businesses Policies (OWNER ONLY):**
+- INSERT: `auth.uid() = user_id` (zero external refs)
+- SELECT: `auth.uid() = user_id` (zero external refs)
+- UPDATE: `auth.uid() = user_id` (zero external refs)
+- DELETE: `auth.uid() = user_id` (zero external refs)
 
 **Business_Members Policies:**
-- INSERT: Only checks `businesses` table (NO self-reference to `business_members`)
-- SELECT: Can reference `businesses` (safe: one-way dependency)
-- UPDATE/DELETE: Only checks `businesses` table (NO self-reference)
+- Can safely reference `businesses` (one-way dependency, no loop)
+
+**Team Member Access:**
+- Handled at APPLICATION level, not RLS
+- `getBusinesses()` function queries business_members first, then businesses
+- Already implemented and working! ✅
 
 ---
 
