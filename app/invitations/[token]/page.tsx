@@ -20,26 +20,33 @@ export default function InvitationPage() {
 
   const [invitation, setInvitation] = useState<InvitationWithDetails | null>(null);
   const [state, setState] = useState<InvitationState>('loading');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const token = params['token'] as string;
 
   useEffect(() => {
     checkAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (user !== null) {
       fetchInvitation();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const checkAuth = async () => {
     const {
       data: { user: currentUser },
     } = await supabase.auth.getUser();
-    setUser(currentUser);
+
+    if (currentUser) {
+      setUser({ id: currentUser.id, email: currentUser.email || '' });
+    } else {
+      setUser(null);
+    }
   };
 
   const fetchInvitation = async () => {
@@ -85,12 +92,11 @@ export default function InvitationPage() {
         throw new Error(error.error || 'Failed to accept invitation');
       }
 
-      toast.success('Invitation accepted! Redirecting to business...');
+      toast.success('Invitation accepted! Redirecting to dashboard...');
 
-      // Redirect to business dashboard
+      // Redirect to main dashboard
       setTimeout(() => {
-        const slug = invitation?.business.slug || '';
-        router.push(`/dashboard/${slug}` as any);
+        router.push('/dashboard');
       }, 1500);
     } catch (error) {
       console.error('Failed to accept invitation:', error);
@@ -320,7 +326,7 @@ export default function InvitationPage() {
           </Button>
           <Button
             onClick={handleAccept}
-            disabled={processing || (user && user.email !== invitation.email)}
+            disabled={processing || (!!user && user.email !== invitation.email)}
             className="flex-1"
           >
             <CheckCircle2 className="mr-2 h-4 w-4" />

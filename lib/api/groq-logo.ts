@@ -4,6 +4,7 @@
  */
 
 import Groq from 'groq-sdk';
+import { logger } from '@/lib/logger';
 
 /**
  * Groq model identifiers optimized for logo generation
@@ -311,13 +312,13 @@ Return ONLY the improved SVG code with geometric shapes. NO TEXT!`;
     const svgMatch = response.match(/<svg[\s\S]*<\/svg>/i);
     if (!svgMatch || !svgMatch[0]) {
       // If refinement fails, return original
-      console.warn(`SVG refinement iteration ${iteration} failed, using previous version`);
+      logger.warn(`SVG refinement iteration ${iteration} failed, using previous version`);
       return svgCode;
     }
 
     return svgMatch[0];
   } catch (error) {
-    console.warn(`SVG refinement iteration ${iteration} error, using previous version:`, error);
+    logger.warn(`SVG refinement iteration ${iteration} error, using previous version`, { error });
     return svgCode;
   }
 }
@@ -388,7 +389,7 @@ Provide your score and feedback.`;
 
     return { score, feedback };
   } catch (error) {
-    console.warn('Quality review failed:', error);
+    logger.warn('Quality review failed', { error });
     return { score: 7.0, feedback: 'Quality review unavailable' };
   }
 }
@@ -474,16 +475,20 @@ export async function generateLogoWithGroq(params: {
   let attempt = 0;
   let bestResult: {
     svgCode: string;
-    template: any;
+    template: {
+      sceneLevel: string;
+      objectLevel: string;
+      layoutLevel: string;
+    };
     quality: { score: number; feedback: string };
   } | null = null;
 
   while (attempt < MAX_REGENERATION_ATTEMPTS) {
     attempt++;
-    console.log(`\n🎯 Logo generation attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS}...`);
+    logger.info(`Logo generation attempt ${attempt}/${MAX_REGENERATION_ATTEMPTS}`, { attempt, businessName });
 
     try {
-      console.log('🎨 Stage 1: Generating logo template with Llama 3.3 70B...');
+      logger.info('Stage 1: Generating logo template with Llama 3.3 70B');
       const template = await generateLogoTemplate({
         businessName,
         description,
@@ -491,17 +496,17 @@ export async function generateLogoWithGroq(params: {
         symbols,
       });
 
-      console.log('💻 Stage 2: Generating SVG code with Llama 3.1 8B...');
+      logger.info('Stage 2: Generating SVG code with Llama 3.1 8B');
       let svgCode = await generateSVGCode(template, colorPalette);
 
       // Validate basic SVG structure
       const validation = validateSVGCode(svgCode);
       if (!validation.valid) {
-        console.warn(`❌ SVG validation failed: ${validation.error}`);
+        logger.warn('SVG validation failed', { error: validation.error, attempt });
         continue; // Try again
       }
 
-      console.log('🔍 Stage 3: Refining SVG (2 iterations)...');
+      logger.info('Stage 3: Refining SVG (2 iterations)');
       const originalPrompt = `${businessName} - ${description} - ${symbols.primary} with ${symbols.secondary}`;
 
       // Refinement iteration 1
@@ -513,14 +518,14 @@ export async function generateLogoWithGroq(params: {
       // Re-validate after refinement
       const refinedValidation = validateSVGCode(svgCode);
       if (!refinedValidation.valid) {
-        console.warn(`❌ Refined SVG validation failed: ${refinedValidation.error}`);
+        logger.warn('Refined SVG validation failed', { error: refinedValidation.error, attempt });
         continue; // Try again
       }
 
-      console.log('✅ Stage 4: Quality review...');
+      logger.info('Stage 4: Quality review');
       const quality = await reviewSVGQuality(svgCode, businessName);
 
-      console.log(`📊 Quality score: ${quality.score}/10`);
+      logger.info('Quality score received', { score: quality.score, maxScore: 10 });
 
       // Store this result if it's the best so far
       if (!bestResult || quality.score > bestResult.quality.score) {
@@ -529,24 +534,28 @@ export async function generateLogoWithGroq(params: {
 
       // If quality is above threshold, we're done!
       if (quality.score >= QUALITY_THRESHOLD) {
-        console.log(`✨ Quality threshold met (${quality.score} >= ${QUALITY_THRESHOLD})! Using this logo.`);
+        logger.info('Quality threshold met, using this logo', { score: quality.score, threshold: QUALITY_THRESHOLD });
         return { svgCode, template, quality };
       }
 
-      console.warn(
-        `⚠️  Quality below threshold (${quality.score} < ${QUALITY_THRESHOLD}). ${attempt < MAX_REGENERATION_ATTEMPTS ? 'Regenerating...' : 'Using best result.'}`
-      );
+      logger.warn('Quality below threshold', {
+        score: quality.score,
+        threshold: QUALITY_THRESHOLD,
+        willRegenerate: attempt < MAX_REGENERATION_ATTEMPTS
+      });
     } catch (error) {
-      console.error(`❌ Attempt ${attempt} failed:`, error);
+      logger.error(`Attempt ${attempt} failed`, error as Error, { attempt, businessName });
       // Continue to next attempt
     }
   }
 
   // If we exhausted all attempts, return the best result we got
   if (bestResult) {
-    console.log(
-      `⚠️  Using best result from ${MAX_REGENERATION_ATTEMPTS} attempts (score: ${bestResult.quality.score}/10)`
-    );
+    logger.warn('Using best result from all attempts', {
+      attempts: MAX_REGENERATION_ATTEMPTS,
+      score: bestResult.quality.score,
+      maxScore: 10
+    });
     return bestResult;
   }
 

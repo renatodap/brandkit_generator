@@ -1,5 +1,6 @@
 import { callOpenRouter, OPENROUTER_MODELS, OpenRouterError } from '@/lib/api/openrouter';
 import type { TaglineGenerationParams, Industry } from '@/types';
+import { logger } from '@/lib/logger';
 
 /**
  * Industry-specific tagline templates and keywords
@@ -289,14 +290,14 @@ Return ONLY the tagline, nothing else.`;
     }
 
     // If cleaning failed, use fallback
-    console.warn('Generated tagline failed validation, using fallback');
+    logger.warn('Generated tagline failed validation, using fallback');
     return getFallbackTagline(params.industry);
   } catch (error) {
     // If AI generation fails, use fallback
-    console.error('Tagline generation failed:', error);
+    logger.error('Tagline generation failed', error as Error, { params });
 
     if (error instanceof OpenRouterError) {
-      console.error(`OpenRouter error: ${error.message} (${error.code})`);
+      logger.error('OpenRouter error details', error as Error, { code: error.code });
     }
 
     return getFallbackTagline(params.industry);
@@ -339,7 +340,7 @@ export async function generateMultipleTaglines(
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
     } catch (error) {
-      console.error(`Failed to generate tagline ${i + 1}:`, error);
+      logger.error(`Failed to generate tagline ${i + 1}`, error as Error, { params, attempt: i + 1 });
     }
   }
 

@@ -3,13 +3,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import { acceptInvitation } from '@/lib/services/team-service';
 
+/**
+ * POST /api/invitations/[token]/accept
+ * Accept an invitation (requires authentication)
+ */
 export async function POST(
   _request: NextRequest,
   { params }: { params: { token: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -32,14 +37,14 @@ export async function POST(
     await acceptInvitation(token, user.id);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to accept invitation:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to accept invitation', error as Error, { token: params.token });
     return NextResponse.json(
       {
         error:
           error instanceof Error
             ? error.message
-            : 'Failed to accept invitation',
+            : 'Failed to accept invitation. Please try again.',
       },
       { status: 400 }
     );

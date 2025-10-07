@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { logger } from '@/lib/logger';
 import { enhancedBrandKitInputSchema } from '@/lib/validations';
 import { generateColorPalette, getFontPairing, generateTagline } from '@/lib/api';
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -25,7 +26,7 @@ import type { BrandKit } from '@/types';
  * POST /api/generate-brand-kit
  * Generates a complete brand kit based on input parameters
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     // Check rate limit
     const ip = getClientIp(request);
@@ -72,11 +73,10 @@ export async function POST(request: NextRequest) {
     } = validationResult.data;
 
     // Log generation start
-    console.log('🎨 Starting brand kit generation for:', businessName);
-    console.log('📝 Options:', { logoOption, colorOption, fontOption, hasNotes: !!notes, hasAdvancedOptions: !!advancedOptions });
+    logger.info('Starting brand kit generation', { businessName, logoOption, colorOption, fontOption, hasNotes: !!notes, hasAdvancedOptions: !!advancedOptions });
 
     // Step 1: Extract brand insights in parallel
-    console.log('🧠 Extracting brand insights...');
+    logger.info('Extracting brand insights', { businessName });
     const [symbolsResult, colorPrefsResult, personalityResult] = await Promise.allSettled([
       extractLogoSymbols({
         businessName,
@@ -120,14 +120,14 @@ export async function POST(request: NextRequest) {
           };
 
     // Step 2: Handle color palette (use existing or generate)
-    console.log('🎨 Processing color palette...');
+    logger.info('Processing color palette', { colorOption, hasExistingColors: !!existingColors });
     const colorPaletteResult = await (async () => {
       if (colorOption === 'existing' && existingColors) {
-        console.log('✅ Using existing color palette');
+        logger.info('Using existing color palette', { businessName });
         return existingColors;
       }
 
-      console.log('🎨 Generating color palette...');
+      logger.info('Generating color palette', { businessName });
       try {
         // Enhance the generation with notes and advanced options
         const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           industry,
         });
       } catch (error) {
-        console.error('Color palette generation failed:', error);
+        logger.error('Color palette generation failed', error as Error, { businessName });
         return {
           primary: '#3B82F6',
           secondary: '#8B5CF6',
@@ -150,17 +150,17 @@ export async function POST(request: NextRequest) {
     })();
 
     // Step 3: Generate core brand assets in parallel
-    console.log('🎨 Generating brand assets...');
+    logger.info('Generating brand assets', { businessName, logoOption });
     const [logoResult, fontPairingResult, taglineResult] = await Promise.allSettled([
       // Logo generation/upload/skip
       (async () => {
         if (logoOption === 'skip') {
-          console.log('⏭️  Skipping logo generation');
+          logger.info('Skipping logo generation', { businessName });
           return null;
         }
 
         if (logoOption === 'upload' && logoBase64) {
-          console.log('📤 Using uploaded logo');
+          logger.info('Using uploaded logo', { businessName });
           return {
             url: logoBase64,
             svgCode: undefined,
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        console.log('🖼️  Generating SVG logo with Groq (Llama 3.3 + 3.1)...');
+        logger.info('Generating SVG logo with Groq (Llama 3.3 + 3.1)', { businessName });
 
         // Enhance description with notes and advanced options
         const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
@@ -212,7 +212,7 @@ export async function POST(request: NextRequest) {
       // Font pairing (use existing or generate)
       (async () => {
         if (fontOption === 'existing' && existingFonts) {
-          console.log('✅ Using existing fonts');
+          logger.info('Using existing fonts', { businessName });
           return {
             primary: {
               name: existingFonts.primary.name,
@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           };
         }
 
-        console.log('🔤 Generating font pairing...');
+        logger.info('Generating font pairing', { businessName, industry });
         const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         return getFontPairing({
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       })(),
       // Tagline (always generate with enhancement)
       (async () => {
-        console.log('✍️  Generating tagline...');
+        logger.info('Generating tagline', { businessName });
         const enhancedDescription = enhancePrompt(businessDescription || '', notes, advancedOptions);
 
         return generateTagline({
@@ -263,16 +263,16 @@ export async function POST(request: NextRequest) {
     if (logoResult.status === 'fulfilled') {
       if (logoResult.value === null) {
         // Logo was skipped
-        console.log('⏭️  Logo skipped per user request');
+        logger.info('Logo skipped per user request', { businessName });
       } else {
         logoUrl = logoResult.value.url;
         logoSvgCode = logoResult.value.svgCode || '';
         logoQuality = logoResult.value.quality;
-        console.log(`✅ Logo processed successfully (Quality: ${logoQuality.score}/10)`);
+        logger.info('Logo processed successfully', { businessName, qualityScore: logoQuality.score });
       }
     } else if (logoOption === 'generate') {
       // Only return error if logo generation was requested but failed
-      console.error('❌ Logo generation failed:', logoResult.reason);
+      logger.error('Logo generation failed', logoResult.reason as Error, { businessName });
       const errorMessage =
         logoResult.reason instanceof Error ? logoResult.reason.message : 'Logo generation failed';
 
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         : `${businessName} - Excellence in ${industry}`;
 
     // Step 4: Generate justifications in parallel (with enhanced context)
-    console.log('📝 Generating justifications...');
+    logger.info('Generating justifications', { businessName });
     const enhancedDescriptionForJustifications = enhancePrompt(
       businessDescription || '',
       notes,
@@ -391,14 +391,14 @@ export async function POST(request: NextRequest) {
       generatedAt: new Date().toISOString(),
     };
 
-    console.log('✅ Brand kit generated successfully for:', businessName);
+    logger.info('Brand kit generated successfully', { businessName });
 
     // Save to database if user is authenticated
     try {
       const user = await getUser();
 
       if (user && logoUrl) {
-        console.log('💾 Saving brand kit to database for user:', user.id);
+        logger.info('Saving brand kit to database', { businessName, userId: user.id });
 
         // Convert color palette to array format for database
         const colorsArray = [
@@ -424,7 +424,7 @@ export async function POST(request: NextRequest) {
           tagline: brandTagline,
         });
 
-        console.log('✅ Brand kit saved to database with ID:', savedBrandKit.id);
+        logger.info('Brand kit saved to database', { businessName, brandKitId: savedBrandKit.id, userId: user.id });
 
         // Add database ID to response
         return NextResponse.json(
@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       // Log error but don't fail the request - user still gets their brand kit
-      console.log('ℹ️  Brand kit not saved to database (user not authenticated or error):', error);
+      logger.info('Brand kit not saved to database (user not authenticated or error)', { businessName, error: error instanceof Error ? error.message : String(error) });
     }
 
     return NextResponse.json(brandKit, {
@@ -450,8 +450,8 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-store, must-revalidate',
       },
     });
-  } catch (error) {
-    console.error('❌ Error in generate-brand-kit API:', error);
+  } catch (error: unknown) {
+    logger.error('Error in generate-brand-kit API', error as Error, { ip: getClientIp(request) });
 
     // Log to Sentry
     Sentry.captureException(error, {
@@ -466,7 +466,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Failed to generate brand kit',
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred',
       },
       { status: 500 }
     );
@@ -477,7 +477,7 @@ export async function POST(request: NextRequest) {
  * GET /api/generate-brand-kit
  * Health check endpoint
  */
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   return NextResponse.json(
     {
       status: 'healthy',

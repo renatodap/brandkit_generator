@@ -5,6 +5,7 @@
  * Shows either "Generate Brand Kit" or "View Brand Kit" button.
  */
 
+import Image from 'next/image';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,15 +19,31 @@ import {
 import { Sparkles, Eye, Building2, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import type { Business } from '@/types';
 
+export interface BrandKitSummary {
+  id: string;
+  business_name: string;
+  logo_url: string;
+  logo_svg: string | null;
+  colors: { name: string; hex: string; usage: string }[];
+  fonts: { primary: string; secondary: string };
+  tagline: string | null;
+  industry: string | null;
+  is_favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BusinessWithBrandKit extends Business {
+  brand_kit: BrandKitSummary | null;
+  has_brand_kit: boolean;
+}
+
 interface BusinessCardProps {
-  business: Business & {
-    brand_kit: any | null;
-    has_brand_kit: boolean;
-  };
+  business: BusinessWithBrandKit;
   onGenerateKit: (businessId: string) => void;
   onViewKit: (brandKitId: string) => void;
-  onEdit: (business: Business & { brand_kit: any | null; has_brand_kit: boolean }) => void;
-  onDelete: (business: Business & { brand_kit: any | null; has_brand_kit: boolean }) => void;
+  onEdit: (business: BusinessWithBrandKit) => void;
+  onDelete: (business: BusinessWithBrandKit) => void;
 }
 
 export function BusinessCard({ business, onGenerateKit, onViewKit, onEdit, onDelete }: BusinessCardProps) {
@@ -36,10 +53,13 @@ export function BusinessCard({ business, onGenerateKit, onViewKit, onEdit, onDel
         {/* Business Icon or Logo Preview */}
         <div className="relative aspect-square mb-4 overflow-hidden rounded-lg bg-muted flex items-center justify-center">
           {business.brand_kit?.logo_url ? (
-            <img
+            <Image
               src={business.brand_kit.logo_url}
               alt={`${business.name} logo`}
+              width={200}
+              height={200}
               className="h-full w-full object-contain p-4"
+              unoptimized
             />
           ) : (
             <Building2 className="h-16 w-16 text-muted-foreground/30" />
@@ -106,12 +126,12 @@ export function BusinessCard({ business, onGenerateKit, onViewKit, onEdit, onDel
       </CardContent>
 
       <CardFooter className="flex gap-2 pt-4 border-t">
-        {business.has_brand_kit ? (
+        {business.has_brand_kit && business.brand_kit ? (
           <Button
             variant="default"
             size="sm"
             className="flex-1"
-            onClick={() => onViewKit(business.brand_kit.id)}
+            onClick={() => onViewKit(business.brand_kit!.id)}
           >
             <Eye className="mr-2 h-4 w-4" />
             View Brand Kit

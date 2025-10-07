@@ -5,12 +5,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { getInvitationByToken } from '@/lib/services/team-service';
 
+/**
+ * GET /api/invitations/[token]
+ * Get invitation details by token (public access)
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: { token: string } }
-) {
+): Promise<NextResponse> {
   try {
     const token = params.token;
 
@@ -41,10 +46,10 @@ export async function GET(
     }
 
     return NextResponse.json(invitation);
-  } catch (error) {
-    console.error('Failed to fetch invitation:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to fetch invitation', error as Error, { token: params.token });
     return NextResponse.json(
-      { error: 'Failed to fetch invitation' },
+      { error: 'Failed to load invitation. Please try again.' },
       { status: 500 }
     );
   }

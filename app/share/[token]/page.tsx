@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,17 +27,14 @@ interface SharedBrandKit {
 
 export default function SharePage() {
   const params = useParams();
+  const token = params['token'] as string;
   const [brandKit, setBrandKit] = useState<SharedBrandKit | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
-    fetchSharedBrandKit();
-  }, [params['token']]);
-
-  const fetchSharedBrandKit = async () => {
+  const fetchSharedBrandKit = useCallback(async () => {
     try {
-      const response = await fetch(`/api/share/${params['token']}`);
+      const response = await fetch(`/api/share/${token}`);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -55,7 +53,11 @@ export default function SharePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    fetchSharedBrandKit();
+  }, [fetchSharedBrandKit]);
 
   const handleDownload = async () => {
     if (!brandKit) return;
@@ -158,10 +160,13 @@ CREATED: ${new Date(brandKit.created_at).toLocaleString()}
         <Card className="p-8">
           <h2 className="text-2xl font-semibold mb-6">Logo</h2>
           <div className="flex justify-center bg-muted rounded-lg p-12">
-            <img
+            <Image
               src={brandKit.logo_url}
               alt={`${brandKit.business_name} logo`}
+              width={800}
+              height={800}
               className="max-h-64 object-contain"
+              unoptimized
             />
           </div>
         </Card>

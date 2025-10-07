@@ -7,20 +7,27 @@
  */
 
 import { createClient } from '../supabase/server';
+import { logger } from '@/lib/logger';
 import type { CreateBusinessInput, UpdateBusinessInput, ListBusinessesQuery } from '../validations/business';
 import type { Business } from '@/types';
 
 /**
- * Get all business IDs that a user has access to (owned + member)
+ * DEPRECATED: Get all business IDs that a user has access to (owned + member)
  * NOTE: With simplified RLS (owner-only), we only return owned businesses
  * RLS policies filter out member businesses automatically
+ *
+ * This function is currently not used due to simplified RLS policies.
+ * Kept for future team collaboration features.
+ *
  * @param userId - User's unique identifier
  * @returns Array of business IDs
+ * @deprecated Not currently used due to simplified RLS policies
  */
+/*
 async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
   const supabase = await createClient();
 
-  console.log('[BusinessService] Getting accessible business IDs for user:', userId);
+  logger.info('Getting accessible business IDs for user', { userId });
 
   // With V3 RLS policies (owner-only), RLS automatically filters to owned businesses
   // So we just query all businesses - RLS will return only owned ones
@@ -30,17 +37,18 @@ async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[BusinessService] Error getting business IDs:', error);
+    logger.error('Error getting business IDs', error as Error, { userId });
     throw new Error(`Failed to get accessible businesses: ${error.message}`);
   }
 
   const ownedIds = ownedBusinesses?.map(b => b.id) || [];
-  console.log('[BusinessService] Found', ownedIds.length, 'accessible businesses');
+  logger.info('Found accessible businesses', { userId, count: ownedIds.length });
 
   // NOTE: Team member access is currently disabled due to RLS recursion issues
   // TODO: Re-enable team access once we have a better RLS policy structure
   return ownedIds;
 }
+*/
 
 /**
  * Create a new business for a user
@@ -51,7 +59,7 @@ async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
  * @throws Error if creation fails or slug already exists for user
  */
 export async function createBusiness(userId: string, data: CreateBusinessInput): Promise<Business> {
-  console.log('[BusinessService] Creating business for user:', userId, 'slug:', data.slug);
+  logger.info('Creating business for user', { userId, slug: data.slug });
 
   const supabase = await createClient();
 
@@ -63,7 +71,7 @@ export async function createBusiness(userId: string, data: CreateBusinessInput):
     industry: data.industry || null,
   };
 
-  console.log('[BusinessService] Insert data:', insertData);
+  logger.debug('Business insert data', { insertData });
 
   const { data: business, error } = await supabase
     .from('businesses')
@@ -72,11 +80,13 @@ export async function createBusiness(userId: string, data: CreateBusinessInput):
     .single();
 
   if (error) {
-    console.error('[BusinessService] Database error:', {
+    logger.error('Database error creating business', error as Error, {
       code: error.code,
       message: error.message,
       details: error.details,
       hint: error.hint,
+      userId,
+      slug: data.slug,
     });
 
     // Handle unique constraint violation
@@ -92,7 +102,7 @@ export async function createBusiness(userId: string, data: CreateBusinessInput):
     throw new Error(`Database error: ${error.message} (code: ${error.code})`);
   }
 
-  console.log('[BusinessService] Business created successfully:', business.id);
+  logger.info('Business created successfully', { businessId: business.id, userId });
   return business as Business;
 }
 
@@ -112,7 +122,7 @@ export async function getBusinesses(
   limit: number;
   offset: number;
 }> {
-  console.log('[BusinessService] getBusinesses called for user:', userId);
+  logger.info('Getting businesses for user', { userId, query });
 
   const supabase = await createClient();
 
@@ -136,11 +146,11 @@ export async function getBusinesses(
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('[BusinessService] Error fetching businesses:', error);
+    logger.error('Error fetching businesses', error as Error, { userId });
     throw new Error(`Failed to fetch businesses: ${error.message}`);
   }
 
-  console.log('[BusinessService] Found', data?.length || 0, 'businesses');
+  logger.info('Found businesses', { userId, count: data?.length || 0 });
 
   return {
     businesses: (data as Business[]) || [],
@@ -172,7 +182,7 @@ export async function getBusinessById(businessId: string, userId: string): Promi
     if (error.code === 'PGRST116') {
       return null; // Not found
     }
-    console.error('Error fetching business:', error);
+    logger.error('Error fetching business', error as Error, { businessId, userId });
     throw new Error(`Failed to fetch business: ${error.message}`);
   }
 
@@ -200,7 +210,7 @@ export async function getBusinessBySlug(slug: string, userId: string): Promise<B
     if (error.code === 'PGRST116') {
       return null; // Not found
     }
-    console.error('Error fetching business by slug:', error);
+    logger.error('Error fetching business by slug', error as Error, { slug, userId });
     throw new Error(`Failed to fetch business: ${error.message}`);
   }
 
@@ -228,7 +238,7 @@ export async function updateBusiness(
     return null;
   }
 
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, string | null> = {};
 
   if (data.name !== undefined) {
     updateData['name'] = data.name;
@@ -239,11 +249,11 @@ export async function updateBusiness(
   }
 
   if (data.description !== undefined) {
-    updateData['description'] = data.description;
+    updateData['description'] = data.description || null;
   }
 
   if (data.industry !== undefined) {
-    updateData['industry'] = data.industry;
+    updateData['industry'] = data.industry || null;
   }
 
   // Update updated_at timestamp
@@ -258,7 +268,7 @@ export async function updateBusiness(
     .single();
 
   if (error) {
-    console.error('Error updating business:', error);
+    logger.error('Error updating business', error as Error, { businessId, userId, data });
 
     // Handle unique constraint violation
     if (error.code === '23505') {
@@ -294,7 +304,7 @@ export async function deleteBusiness(businessId: string, userId: string): Promis
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Error deleting business:', error);
+    logger.error('Error deleting business', error as Error, { businessId, userId });
     throw new Error(`Failed to delete business: ${error.message}`);
   }
 
@@ -330,7 +340,7 @@ export async function isSlugAvailable(
   const { data, error } = await query.maybeSingle();
 
   if (error) {
-    console.error('Error checking slug availability:', error);
+    logger.error('Error checking slug availability', error as Error, { slug, userId, excludeBusinessId });
     throw new Error(`Failed to check slug availability: ${error.message}`);
   }
 
@@ -354,7 +364,7 @@ export async function getBusinessesWithBrandKits(
   limit: number;
   offset: number;
 }> {
-  console.log('[BusinessService] getBusinessesWithBrandKits called for user:', userId);
+  logger.info('Getting businesses with brand kits for user', { userId, query });
 
   const supabase = await createClient();
 
@@ -396,19 +406,25 @@ export async function getBusinessesWithBrandKits(
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('[BusinessService] Error fetching businesses with brand kits:', error);
+    logger.error('Error fetching businesses with brand kits', error as Error, { userId });
     throw new Error(`Failed to fetch businesses: ${error.message}`);
   }
 
-  console.log('[BusinessService] Found', data?.length || 0, 'businesses with brand kits');
+  logger.info('Found businesses with brand kits', { userId, count: data?.length || 0 });
 
   // Transform data to flatten brand_kits array (since it's 1:1, we only get first item)
-  const businesses = (data || []).map((business: any) => ({
-    ...business,
-    brand_kit: business.brand_kits?.[0] || null,
-    has_brand_kit: !!business.brand_kits?.[0],
-    brand_kits: undefined, // Remove the array
-  }));
+  interface BusinessWithBrandKitsArray extends Business {
+    brand_kits?: Array<Record<string, unknown>>;
+  }
+
+  const businesses = (data || []).map((business: BusinessWithBrandKitsArray) => {
+    const { brand_kits, ...businessData } = business;
+    return {
+      ...businessData,
+      brand_kit: brand_kits?.[0] || null,
+      has_brand_kit: !!brand_kits?.[0],
+    };
+  });
 
   return {
     businesses,

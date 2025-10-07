@@ -6,6 +6,7 @@
  */
 
 import { createClient, createAdminClient } from '../supabase/server';
+import { logger } from '@/lib/logger';
 import type { CreateBrandKitInput, UpdateBrandKitInput, ListBrandKitsQuery } from '../validations/brand-kit';
 
 /**
@@ -49,8 +50,8 @@ export async function createBrandKit(userId: string, data: CreateBrandKitInput) 
       industry: data.industry || null,
       logo_url: data.logoUrl,
       logo_svg: data.logoSvg || null,
-      colors: data.colors as any, // JSONB type
-      fonts: data.fonts as any, // JSONB type
+      colors: JSON.parse(JSON.stringify(data.colors)), // JSONB type - properly serialize
+      fonts: JSON.parse(JSON.stringify(data.fonts)), // JSONB type - properly serialize
       tagline: data.tagline || null,
       design_justification: data.designJustification || null,
     })
@@ -58,7 +59,7 @@ export async function createBrandKit(userId: string, data: CreateBrandKitInput) 
     .single();
 
   if (error) {
-    console.error('Error creating brand kit:', error);
+    logger.error('Error creating brand kit', error as Error, { userId, businessId: data.businessId });
     throw new Error(`Failed to create brand kit: ${error.message}`);
   }
 
@@ -90,7 +91,7 @@ export async function getBrandKits(userId: string, query: ListBrandKitsQuery = {
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('Error fetching brand kits:', error);
+    logger.error('Error fetching brand kits', error as Error, { userId });
     throw new Error(`Failed to fetch brand kits: ${error.message}`);
   }
 
@@ -130,7 +131,7 @@ export async function getBrandKitByBusinessId(businessId: string, userId: string
     if (error.code === 'PGRST116') {
       return null; // Not found
     }
-    console.error('Error fetching brand kit by business ID:', error);
+    logger.error('Error fetching brand kit by business ID', error as Error, { businessId, userId });
     throw new Error(`Failed to fetch brand kit: ${error.message}`);
   }
 
@@ -153,7 +154,7 @@ export async function getBrandKitById(brandKitId: string, userId: string | null 
     if (error.code === 'PGRST116') {
       return null; // Not found
     }
-    console.error('Error fetching brand kit:', error);
+    logger.error('Error fetching brand kit', error as Error, { brandKitId, userId });
     throw new Error(`Failed to fetch brand kit: ${error.message}`);
   }
 
@@ -184,7 +185,7 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
     return null;
   }
 
-  const updateData: Record<string, any> = {};
+  const updateData: Record<string, string | boolean> = {};
 
   if (data.businessName !== undefined) {
     updateData['business_name'] = data.businessName;
@@ -203,7 +204,7 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
     .single();
 
   if (error) {
-    console.error('Error updating brand kit:', error);
+    logger.error('Error updating brand kit', error as Error, { brandKitId, userId, data });
     throw new Error(`Failed to update brand kit: ${error.message}`);
   }
 
@@ -229,7 +230,7 @@ export async function deleteBrandKit(brandKitId: string, userId: string) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Error deleting brand kit:', error);
+    logger.error('Error deleting brand kit', error as Error, { brandKitId, userId });
     throw new Error(`Failed to delete brand kit: ${error.message}`);
   }
 
@@ -270,7 +271,7 @@ export async function createShareToken(brandKitId: string, userId: string, expir
     .single();
 
   if (error) {
-    console.error('Error creating share token:', error);
+    logger.error('Error creating share token', error as Error, { brandKitId, userId });
     throw new Error(`Failed to create share token: ${error.message}`);
   }
 
@@ -339,30 +340,23 @@ function generateRandomToken(length: number = 32): string {
 }
 
 /**
- * Sync or create user in database (called after Clerk signup)
+ * DEPRECATED: This function is not needed with Supabase Auth
+ * Supabase automatically manages users in auth.users table
+ *
+ * Note: Previously referenced Clerk auth system, but this project uses Supabase Auth
+ * @deprecated Use Supabase Auth built-in user management instead
  */
-export async function syncUserToDatabase(clerkUserId: string, email: string, firstName?: string, lastName?: string, profileImageUrl?: string) {
-  const supabase = createAdminClient();
+export async function syncUserToDatabase(
+  userId: string,
+  email: string,
+  _metadata?: Record<string, unknown>
+): Promise<{ id: string; email: string }> {
+  logger.warn('DEPRECATED: syncUserToDatabase called - this is not needed with Supabase Auth');
 
-  const { data, error } = await supabase
-    .from('users')
-    .upsert({
-      clerk_user_id: clerkUserId,
-      email,
-      first_name: firstName || null,
-      last_name: lastName || null,
-      profile_image_url: profileImageUrl || null,
-      last_login_at: new Date().toISOString(),
-    }, {
-      onConflict: 'clerk_user_id',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error syncing user to database:', error);
-    throw new Error(`Failed to sync user: ${error.message}`);
-  }
-
-  return data;
+  // With Supabase Auth, users are automatically created in auth.users
+  // This function is kept for backward compatibility but does nothing
+  return {
+    id: userId,
+    email,
+  };
 }

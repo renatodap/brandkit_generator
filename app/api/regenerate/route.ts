@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { generateColorPalette, getFontPairing, generateTagline } from '@/lib/api';
 import { generateLogoWithGroq, isGroqConfigured } from '@/lib/api/groq-logo';
 import { extractLogoSymbols } from '@/lib/api/groq';
@@ -37,7 +38,7 @@ const regenerateSchema = z.object({
  * POST /api/regenerate
  * Regenerate a specific component of the brand kit
  */
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
     const { component, brandKit } = regenerateSchema.parse(body);
@@ -48,11 +49,11 @@ export async function POST(req: NextRequest) {
 
     switch (component) {
       case 'logo': {
-        console.log('🎨 Regenerating logo...');
+        logger.info('Regenerating logo', { businessName });
 
         if (!isGroqConfigured()) {
           return NextResponse.json(
-            { error: 'Logo generation not available - Groq API not configured' },
+            { error: 'Logo generation is currently unavailable' },
             { status: 503 }
           );
         }
@@ -89,8 +90,8 @@ export async function POST(req: NextRequest) {
               logo: logoResult.quality.feedback,
             },
           };
-        } catch (error) {
-          console.error('Logo generation failed:', error);
+        } catch (error: unknown) {
+          logger.error('Logo generation failed', error as Error, { businessName });
           return NextResponse.json(
             { error: 'Logo generation failed. Please try again.' },
             { status: 500 }
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'colors': {
-        console.log('🎨 Regenerating colors...');
+        logger.info('Regenerating colors', { businessName });
 
         try {
           const colorPalette = await generateColorPalette({
@@ -112,8 +113,8 @@ export async function POST(req: NextRequest) {
           result = {
             colors: colorPalette,
           };
-        } catch (error) {
-          console.error('Color generation failed:', error);
+        } catch (error: unknown) {
+          logger.error('Color generation failed', error as Error, { businessName });
           return NextResponse.json(
             { error: 'Color generation failed. Please try again.' },
             { status: 500 }
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'fonts': {
-        console.log('🔤 Regenerating fonts...');
+        logger.info('Regenerating fonts', { businessName });
 
         try {
           const fontPairing = await getFontPairing(industry as any);
@@ -131,8 +132,8 @@ export async function POST(req: NextRequest) {
           result = {
             fonts: fontPairing,
           };
-        } catch (error) {
-          console.error('Font generation failed:', error);
+        } catch (error: unknown) {
+          logger.error('Font generation failed', error as Error, { businessName });
           return NextResponse.json(
             { error: 'Font generation failed. Please try again.' },
             { status: 500 }
@@ -142,7 +143,7 @@ export async function POST(req: NextRequest) {
       }
 
       case 'tagline': {
-        console.log('💬 Regenerating tagline...');
+        logger.info('Regenerating tagline', { businessName });
 
         try {
           const tagline = await generateTagline({
@@ -154,8 +155,8 @@ export async function POST(req: NextRequest) {
           result = {
             tagline,
           };
-        } catch (error) {
-          console.error('Tagline generation failed:', error);
+        } catch (error: unknown) {
+          logger.error('Tagline generation failed', error as Error, { businessName });
           return NextResponse.json(
             { error: 'Tagline generation failed. Please try again.' },
             { status: 500 }
@@ -166,14 +167,14 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(result);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 400 });
     }
 
-    console.error('Regeneration error:', error);
+    logger.error('Regeneration error', error as Error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred during regeneration' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     );
   }

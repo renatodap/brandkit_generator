@@ -1,5 +1,6 @@
 import type { FontPairing, FontPairingParams, Industry } from '@/types';
 import { extractBrandPersonality } from './groq';
+import { logger } from '@/lib/logger';
 
 /**
  * Font category type from Google Fonts
@@ -520,7 +521,7 @@ export async function getFontPairing(
     };
   } catch (error) {
     // Fallback to safe default pairing
-    console.error('Error getting font pairing:', error);
+    logger.error('Error getting font pairing', error as Error, { params });
 
     const inter = FONTS['inter'];
     const lora = FONTS['loraSerif'];

@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/supabase/server';
 import { createBusiness, getBusinesses, getBusinessesWithBrandKits } from '@/lib/services/business-service';
 
@@ -21,7 +22,7 @@ import { createBusinessSchema, listBusinessesSchema } from '@/lib/validations/bu
  * - include=brand_kits: Include brand kit data with each business
  * - limit, offset, sort, order, industry: Standard filtering
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require authentication
     const user = await requireUser();
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       : await getBusinesses(user.id, validated);
 
     return NextResponse.json(result, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid query parameters', details: error.flatten().fieldErrors },
@@ -63,9 +64,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.error('Failed to fetch businesses:', error);
+    logger.error('Failed to fetch businesses', error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch businesses' },
+      { error: 'Failed to load businesses. Please try again.' },
       { status: 500 }
     );
   }
@@ -75,31 +76,31 @@ export async function GET(request: NextRequest) {
  * POST /api/businesses
  * Create a new business
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    console.log('[API] POST /api/businesses - Starting request');
+    logger.info('POST /api/businesses - Starting request');
 
     // Require authentication
     const user = await requireUser();
-    console.log('[API] User authenticated:', user.id);
+    logger.info('User authenticated', { userId: user.id });
 
     // Parse and validate request body
     const body = await request.json();
-    console.log('[API] Request body:', { name: body.name, slug: body.slug });
+    logger.info('Request body received', { name: body.name, slug: body.slug });
 
     const validated = createBusinessSchema.parse(body);
-    console.log('[API] Validation passed');
+    logger.info('Validation passed');
 
     // Create business
     const business = await createBusiness(user.id, validated);
-    console.log('[API] Business created:', business.id);
+    logger.info('Business created', { businessId: business.id, userId: user.id });
 
     return NextResponse.json(business, { status: 201 });
-  } catch (error) {
-    console.error('[API] Error in POST /api/businesses:', error);
+  } catch (error: unknown) {
+    logger.error('Error in POST /api/businesses', error as Error);
 
     if (error instanceof z.ZodError) {
-      console.error('[API] Validation error:', error.flatten().fieldErrors);
+      logger.error('Validation error', error as Error, { details: error.flatten().fieldErrors });
       return NextResponse.json(
         { error: 'Invalid input', details: error.flatten().fieldErrors },
         { status: 400 }
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     // Check if it's an authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
-      console.error('[API] Authentication error - user not found');
+      logger.error('Authentication error - user not found', error);
       return NextResponse.json(
         { error: 'Authentication required. Please sign in.' },
         { status: 401 }
@@ -116,19 +117,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof Error && error.message.includes('already exists')) {
-      console.error('[API] Duplicate slug error');
+      logger.error('Duplicate slug error', error);
       return NextResponse.json(
         { error: error.message },
         { status: 409 }
       );
     }
 
-    // Return detailed error message for debugging
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[API] Unhandled error:', errorMessage);
+    // Return user-friendly error message
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    logger.error('Unhandled error', error as Error, { errorMessage });
 
     return NextResponse.json(
-      { error: `Failed to create business: ${errorMessage}` },
+      { error: 'Failed to create business. Please try again.' },
       { status: 500 }
     );
   }

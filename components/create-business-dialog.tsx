@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { createBusinessSchema, generateSlug, type CreateBusinessInput } from '@/lib/validations/business';
+import { logger } from '@/lib/logger';
 
 interface CreateBusinessDialogProps {
   open: boolean;
@@ -128,7 +129,7 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
 
     setIsCreating(true);
     try {
-      console.log('[CreateBusiness] Submitting:', { name: data.name, slug: data.slug });
+      logger.info('Creating business', { name: data.name, slug: data.slug });
 
       const response = await fetch('/api/businesses', {
         method: 'POST',
@@ -136,11 +137,11 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
         body: JSON.stringify(data),
       });
 
-      console.log('[CreateBusiness] Response status:', response.status);
+      logger.info('Business creation response received', { status: response.status });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
-        console.error('[CreateBusiness] API error:', errorData);
+        logger.error('Business creation API error', errorData as Error, { status: response.status });
 
         // Handle different error types
         if (response.status === 401) {
@@ -158,13 +159,13 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
       }
 
       const business = await response.json();
-      console.log('[CreateBusiness] Success:', business.id);
+      logger.info('Business created successfully', { businessId: business.id });
       toast.success('Business created successfully!');
       onSuccess(business);
       reset();
       onOpenChange(false);
     } catch (error) {
-      console.error('[CreateBusiness] Failed:', error);
+      logger.error('Failed to create business', error as Error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to create business. Please try again.';
       toast.error(errorMessage);
     } finally {

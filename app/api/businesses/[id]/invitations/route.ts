@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -19,10 +20,14 @@ const createInvitationSchema = z.object({
   role: z.enum(['admin', 'editor', 'viewer']),
 });
 
+/**
+ * POST /api/businesses/[id]/invitations
+ * Create an invitation to join a business (owner/admin only)
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -33,7 +38,10 @@ export async function POST(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -64,7 +72,7 @@ export async function POST(
     // await sendInvitationEmail(invitation);
 
     return NextResponse.json(invitation, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.flatten().fieldErrors },
@@ -72,23 +80,24 @@ export async function POST(
       );
     }
 
-    console.error('Failed to create invitation:', error);
+    logger.error('Failed to create invitation', error as Error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to create invitation',
+        error: 'Failed to create invitation. Please try again.',
       },
       { status: 500 }
     );
   }
 }
 
+/**
+ * GET /api/businesses/[id]/invitations
+ * Get pending invitations for a business (owner/admin only)
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -99,7 +108,10 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -118,10 +130,10 @@ export async function GET(
     const invitations = await getBusinessInvitations(businessId);
 
     return NextResponse.json({ invitations });
-  } catch (error) {
-    console.error('Failed to fetch invitations:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to fetch invitations', error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch invitations' },
+      { error: 'Failed to load invitations. Please try again.' },
       { status: 500 }
     );
   }

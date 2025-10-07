@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import { logger } from '@/lib/logger';
 
 /**
  * Groq API client for fast, cost-effective LLM calls
@@ -101,7 +102,7 @@ Respond in this exact JSON format:
       mood: result.mood || 'professional',
     };
   } catch (error) {
-    console.error('Groq symbol extraction failed, using fallback:', error);
+    logger.error('Groq symbol extraction failed, using fallback', error as Error, { params });
     return extractLogoSymbolsDeterministic(params);
   }
 }
@@ -198,7 +199,7 @@ Respond in this exact JSON format with scores 0.0-1.0:
       luxurious: clamp(result.luxurious, 0, 1),
     };
   } catch (error) {
-    console.error('Groq personality extraction failed, using fallback:', error);
+    logger.error('Groq personality extraction failed, using fallback', error as Error, { params });
     return extractBrandPersonalityDeterministic(params);
   }
 }
@@ -278,7 +279,7 @@ Respond in this exact JSON format:
       keywords: Array.isArray(result.keywords) ? result.keywords.slice(0, 5) : [],
     };
   } catch (error) {
-    console.error('Groq color preference extraction failed, using fallback:', error);
+    logger.error('Groq color preference extraction failed, using fallback', error as Error, { params });
     return extractColorPreferencesDeterministic(params);
   }
 }
@@ -563,7 +564,7 @@ Write a concise 2-3 sentence explanation of why these specific colors work well 
 
     return content.trim();
   } catch (error) {
-    console.error('Groq color justification failed:', error);
+    logger.error('Groq color justification failed', error as Error, { params });
     return `The ${params.mood} color palette reflects your ${params.industry} industry with ${params.trend} aesthetics. The primary color (${params.colors.primary}) conveys trust and professionalism, while the secondary (${params.colors.secondary}) adds visual interest. The accent color (${params.colors.accent}) provides emphasis for calls-to-action.`;
   }
 }
@@ -639,7 +640,7 @@ Write a concise 2-3 sentence explanation of why these specific fonts work well t
 
     return content.trim();
   } catch (error) {
-    console.error('Groq font justification failed:', error);
+    logger.error('Groq font justification failed', error as Error, { params });
     return `${params.fonts.primary.name} (${params.fonts.primary.category}) pairs perfectly with ${params.fonts.secondary.name} (${params.fonts.secondary.category}) to create a ${params.industry} brand identity that is both professional and approachable. The combination ensures readability while conveying your brand's personality.`;
   }
 }

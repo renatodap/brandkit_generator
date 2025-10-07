@@ -25,12 +25,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { Business } from '@/types';
 import type { BusinessTemplate } from '@/config/templates';
+import type { BusinessWithBrandKit } from '@/components/business-card';
 import { generateSlugFromTemplate } from '@/config/templates';
-
-interface BusinessWithBrandKit extends Business {
-  brand_kit: any | null;
-  has_brand_kit: boolean;
-}
 
 export default function DashboardPage() {
   const [businesses, setBusinesses] = useState<BusinessWithBrandKit[]>([]);
@@ -46,6 +42,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     checkUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const checkUser = async () => {

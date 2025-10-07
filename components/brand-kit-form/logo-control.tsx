@@ -159,6 +159,7 @@ export function LogoControl({ value, onChange, onFileChange, logoBase64, error }
                 {/* Logo Preview */}
                 <div className="flex-shrink-0 w-20 h-20 border rounded flex items-center justify-center bg-muted">
                   {logoBase64 ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={logoBase64}
                       alt="Uploaded logo preview"

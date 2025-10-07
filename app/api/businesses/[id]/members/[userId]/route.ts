@@ -6,6 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -18,10 +19,14 @@ const updateMemberSchema = z.object({
   role: z.enum(['admin', 'editor', 'viewer']),
 });
 
+/**
+ * PATCH /api/businesses/[id]/members/[userId]
+ * Update a team member's role (owner/admin only)
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string; userId: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -32,7 +37,10 @@ export async function PATCH(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -56,7 +64,7 @@ export async function PATCH(
     const member = await updateMemberRole(businessId, targetUserId, validated.role);
 
     return NextResponse.json(member);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.flatten().fieldErrors },
@@ -64,21 +72,24 @@ export async function PATCH(
       );
     }
 
-    console.error('Failed to update member:', error);
+    logger.error('Failed to update member', error as Error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : 'Failed to update member',
+        error: 'Failed to update team member. Please try again.',
       },
       { status: 500 }
     );
   }
 }
 
+/**
+ * DELETE /api/businesses/[id]/members/[userId]
+ * Remove a team member (owner/admin only, or self)
+ */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string; userId: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -89,7 +100,10 @@ export async function DELETE(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -114,12 +128,11 @@ export async function DELETE(
     await removeMember(businessId, targetUserId);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to remove member:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to remove member', error as Error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : 'Failed to remove member',
+        error: 'Failed to remove team member. Please try again.',
       },
       { status: 500 }
     );

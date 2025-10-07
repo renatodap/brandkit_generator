@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { logger } from '@/lib/logger';
 import type {
   BusinessMember,
   BusinessInvitation,
@@ -131,19 +132,38 @@ export async function getBusinessMembers(businessId: string): Promise<MemberWith
     .order('joined_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch business members:', error);
+    logger.error('Failed to fetch business members', error as Error, { businessId });
     throw new Error('Failed to fetch business members');
   }
 
   // Transform the data to match our type
-  return (data || []).map((member: any) => ({
+  interface MemberRow {
+    id: string;
+    business_id: string;
+    user_id: string;
+    role: MemberRole;
+    invited_by: string | null;
+    joined_at: string;
+    created_at: string;
+    updated_at: string;
+    user: {
+      id: string;
+      email: string;
+      raw_user_meta_data: { full_name?: string } | null;
+    };
+  }
+
+  // Use type assertion for Supabase query result
+  const rows = (data || []) as unknown as MemberRow[];
+
+  return rows.map((member) => ({
     ...member,
     user: {
       id: member.user.id,
       email: member.user.email,
-      user_metadata: member.user.raw_user_meta_data,
+      user_metadata: member.user.raw_user_meta_data || undefined,
     },
-  }));
+  })) as MemberWithUser[];
 }
 
 export async function addMember(
@@ -176,7 +196,7 @@ export async function addMember(
     .single();
 
   if (error) {
-    console.error('Failed to add member:', error);
+    logger.error('Failed to add member', error as Error, { businessId, userId, role });
     throw new Error('Failed to add member to business');
   }
 
@@ -197,7 +217,7 @@ export async function updateMemberRole(
     .single();
 
   if (error) {
-    console.error('Failed to update member role:', error);
+    logger.error('Failed to update member role', error as Error, { businessId, userId, newRole });
     throw new Error('Failed to update member role');
   }
 
@@ -218,7 +238,7 @@ export async function removeMember(businessId: string, userId: string): Promise<
     .eq('user_id', userId);
 
   if (error) {
-    console.error('Failed to remove member:', error);
+    logger.error('Failed to remove member', error as Error, { businessId, userId });
     throw new Error('Failed to remove member from business');
   }
 }
@@ -287,7 +307,7 @@ export async function createInvitation(
     .single();
 
   if (error) {
-    console.error('Failed to create invitation:', error);
+    logger.error('Failed to create invitation', error as Error, { businessId, email, role });
     throw new Error('Failed to create invitation');
   }
 
@@ -319,8 +339,31 @@ export async function getInvitationByToken(
     return null;
   }
 
-  // Type assertion for complex Supabase join query
-  const typedData = data as any;
+  // Define type for Supabase join query result
+  interface InvitationRow {
+    id: string;
+    business_id: string;
+    email: string;
+    role: MemberRole;
+    invited_by: string;
+    token: string;
+    status: string;
+    expires_at: string;
+    created_at: string;
+    updated_at: string;
+    inviter: {
+      id: string;
+      email: string;
+      raw_user_meta_data: { full_name?: string } | null;
+    };
+    business: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }
+
+  const typedData = data as unknown as InvitationRow;
 
   return {
     id: typedData.id,
@@ -336,7 +379,7 @@ export async function getInvitationByToken(
     inviter: {
       id: typedData.inviter.id,
       email: typedData.inviter.email,
-      user_metadata: typedData.inviter.raw_user_meta_data,
+      user_metadata: typedData.inviter.raw_user_meta_data || undefined,
     },
     business: {
       id: typedData.business.id,
@@ -369,19 +412,45 @@ export async function getBusinessInvitations(
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch invitations:', error);
+    logger.error('Failed to fetch invitations', error as Error, { businessId });
     throw new Error('Failed to fetch invitations');
   }
 
-  return (data || []).map((inv: any) => ({
+  interface InvitationRow {
+    id: string;
+    business_id: string;
+    email: string;
+    role: MemberRole;
+    invited_by: string;
+    token: string;
+    status: 'pending' | 'accepted' | 'declined' | 'expired';
+    expires_at: string;
+    created_at: string;
+    updated_at: string;
+    inviter: {
+      id: string;
+      email: string;
+      raw_user_meta_data: { full_name?: string } | null;
+    };
+    business: {
+      id: string;
+      name: string;
+      slug: string;
+    };
+  }
+
+  // Use type assertion for Supabase query result
+  const rows = (data || []) as unknown as InvitationRow[];
+
+  return rows.map((inv) => ({
     ...inv,
     inviter: {
       id: inv.inviter.id,
       email: inv.inviter.email,
-      user_metadata: inv.inviter.raw_user_meta_data,
+      user_metadata: inv.inviter.raw_user_meta_data || undefined,
     },
     business: inv.business,
-  }));
+  })) as InvitationWithDetails[];
 }
 
 export async function acceptInvitation(token: string, userId: string): Promise<void> {
@@ -438,7 +507,7 @@ export async function declineInvitation(token: string): Promise<void> {
     .eq('token', token);
 
   if (error) {
-    console.error('Failed to decline invitation:', error);
+    logger.error('Failed to decline invitation', error as Error, { token });
     throw new Error('Failed to decline invitation');
   }
 }
@@ -450,7 +519,7 @@ export async function revokeInvitation(invitationId: string): Promise<void> {
     .eq('id', invitationId);
 
   if (error) {
-    console.error('Failed to revoke invitation:', error);
+    logger.error('Failed to revoke invitation', error as Error, { invitationId });
     throw new Error('Failed to revoke invitation');
   }
 }
@@ -502,7 +571,7 @@ export async function createAccessRequest(
     .single();
 
   if (error) {
-    console.error('Failed to create access request:', error);
+    logger.error('Failed to create access request', error as Error, { businessId, userId, requestedRole });
     throw new Error('Failed to create access request');
   }
 
@@ -527,18 +596,39 @@ export async function getBusinessAccessRequests(
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Failed to fetch access requests:', error);
+    logger.error('Failed to fetch access requests', error as Error, { businessId });
     throw new Error('Failed to fetch access requests');
   }
 
-  return (data || []).map((req: any) => ({
+  interface AccessRequestRow {
+    id: string;
+    business_id: string;
+    user_id: string;
+    requested_role: MemberRole;
+    message: string | null;
+    status: 'pending' | 'approved' | 'rejected';
+    reviewed_by: string | null;
+    reviewed_at: string | null;
+    created_at: string;
+    updated_at: string;
+    user: {
+      id: string;
+      email: string;
+      raw_user_meta_data: { full_name?: string } | null;
+    };
+  }
+
+  // Use type assertion for Supabase query result
+  const rows = (data || []) as unknown as AccessRequestRow[];
+
+  return rows.map((req) => ({
     ...req,
     user: {
       id: req.user.id,
       email: req.user.email,
-      user_metadata: req.user.raw_user_meta_data,
+      user_metadata: req.user.raw_user_meta_data || undefined,
     },
-  }));
+  })) as AccessRequestWithUser[];
 }
 
 export async function approveAccessRequest(
@@ -592,7 +682,7 @@ export async function rejectAccessRequest(
     .eq('id', requestId);
 
   if (error) {
-    console.error('Failed to reject access request:', error);
+    logger.error('Failed to reject access request', error as Error, { requestId, reviewedBy });
     throw new Error('Failed to reject access request');
   }
 }
@@ -618,7 +708,7 @@ export async function withdrawAccessRequest(requestId: string, userId: string): 
     .eq('id', requestId);
 
   if (error) {
-    console.error('Failed to withdraw access request:', error);
+    logger.error('Failed to withdraw access request', error as Error, { requestId, userId });
     throw new Error('Failed to withdraw access request');
   }
 }

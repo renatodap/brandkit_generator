@@ -196,10 +196,17 @@ export default function PrivacyPage() {
             <p className="text-muted-foreground">
               If you have any questions about this Privacy Policy, please contact us at:
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground font-mono text-sm">
               Email: privacy@brandkitgenerator.com
               <br />
-              Address: [Your Address]
+              Mailing Address: Brand Kit Generator
+              <br />
+              [Company Address - To Be Added]
+              <br />
+              [City, State ZIP Code]
+            </p>
+            <p className="text-xs text-muted-foreground mt-4">
+              Note: Please update contact information before deploying to production.
             </p>
           </CardContent>
         </Card>

@@ -1,5 +1,6 @@
 import type { ColorPalette, ColorPaletteParams } from '@/types';
 import { extractColorPreferences } from './groq';
+import { logger } from '@/lib/logger';
 
 /**
  * Color theory utilities
@@ -317,7 +318,7 @@ export async function generateColorPalette(
     };
   } catch (error) {
     // Fallback to a safe default palette
-    console.error('Error generating color palette:', error);
+    logger.error('Error generating color palette', error as Error, { params });
 
     return {
       primary: '#2196F3',

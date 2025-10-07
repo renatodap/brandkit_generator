@@ -15,3 +15,9 @@ afterEach(() => {
 process.env['HUGGINGFACE_API_KEY'] = 'hf_test_key_for_testing';
 process.env['NEXT_PUBLIC_APP_URL'] = 'http://localhost:3000';
 process.env['NEXT_PUBLIC_APP_NAME'] = 'Brand Kit Generator';
+process.env['GROQ_API_KEY'] = 'gsk_test_key_for_testing';
+process.env['OPENROUTER_API_KEY'] = 'sk-test_key_for_testing';
+process.env['NEXT_PUBLIC_SUPABASE_URL'] = 'https://test.supabase.co';
+process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY'] = 'test_anon_key';
+process.env['SUPABASE_SERVICE_KEY'] = 'test_service_key';
+// NODE_ENV is read-only and set automatically by the test runner

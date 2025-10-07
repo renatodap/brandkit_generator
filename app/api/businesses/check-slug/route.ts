@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/supabase/server';
 import { isSlugAvailable } from '@/lib/services/business-service';
 
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/businesses/check-slug?slug=my-business&excludeId=uuid
  * Check if a slug is available for the authenticated user
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     // Require authentication
     const user = await requireUser();
@@ -36,8 +37,8 @@ export async function GET(request: NextRequest) {
     const available = await isSlugAvailable(slug, user.id, excludeId);
 
     return NextResponse.json({ available }, { status: 200 });
-  } catch (error) {
-    console.error('Failed to check slug availability:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to check slug availability', error as Error, { slug: request.nextUrl.searchParams.get('slug') });
 
     // Check if it's an authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to check slug availability' },
+      { error: 'Failed to check slug availability. Please try again.' },
       { status: 500 }
     );
   }

@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import {
   canManageTeam,
@@ -19,10 +20,14 @@ const createAccessRequestSchema = z.object({
   message: z.string().max(500).optional(),
 });
 
+/**
+ * POST /api/businesses/[id]/access-requests
+ * Create an access request for a business
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -33,7 +38,10 @@ export async function POST(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -54,7 +62,7 @@ export async function POST(
     // await notifyBusinessOwner(accessRequest);
 
     return NextResponse.json(accessRequest, { status: 201 });
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.flatten().fieldErrors },
@@ -62,23 +70,24 @@ export async function POST(
       );
     }
 
-    console.error('Failed to create access request:', error);
+    logger.error('Failed to create access request', error as Error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to create access request',
+        error: 'Failed to create access request. Please try again.',
       },
       { status: 500 }
     );
   }
 }
 
+/**
+ * GET /api/businesses/[id]/access-requests
+ * Get pending access requests for a business (owner/admin only)
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -89,7 +98,10 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -108,10 +120,10 @@ export async function GET(
     const requests = await getBusinessAccessRequests(businessId);
 
     return NextResponse.json({ requests });
-  } catch (error) {
-    console.error('Failed to fetch access requests:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to fetch access requests', error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch access requests' },
+      { error: 'Failed to load access requests. Please try again.' },
       { status: 500 }
     );
   }

@@ -5,13 +5,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import { getBusinessMembers, canManageTeam } from '@/lib/services/team-service';
 
+/**
+ * GET /api/businesses/[id]/members
+ * Get all members of a business (owner/admin only)
+ */
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -22,7 +27,10 @@ export async function GET(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -72,10 +80,10 @@ export async function GET(
           }
         : null,
     });
-  } catch (error) {
-    console.error('Failed to fetch members:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to fetch members', error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch members' },
+      { error: 'Failed to load team members. Please try again.' },
       { status: 500 }
     );
   }

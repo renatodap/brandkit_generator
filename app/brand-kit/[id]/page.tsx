@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,6 +39,7 @@ export default function BrandKitPage() {
 
   useEffect(() => {
     checkAuthAndFetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params['id']]);
 
   const checkAuthAndFetch = async () => {
@@ -284,10 +286,13 @@ CREATED: ${new Date(brandKit.created_at).toLocaleString()}
         <Card className="p-8">
           <h2 className="text-2xl font-semibold mb-6">Logo</h2>
           <div className="flex justify-center bg-muted rounded-lg p-12">
-            <img
+            <Image
               src={brandKit.logo_url}
               alt={`${brandKit.business_name} logo`}
+              width={256}
+              height={256}
               className="max-h-64 object-contain"
+              unoptimized
             />
           </div>
         </Card>

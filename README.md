@@ -1,26 +1,43 @@
 # 🎨 Brand Kit Generator
 
-> AI-powered brand identity generator - Create professional brand kits in seconds
+> AI-powered brand identity generator with team collaboration - Create professional brand kits in seconds
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black)](https://nextjs.org/)
+[![Supabase](https://img.shields.io/badge/Supabase-Powered-green)](https://supabase.com/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Generate complete brand identity packages including logos, color palettes, typography, and taglines using AI - all for free!
+Generate complete brand identity packages including SVG logos, color palettes, typography, and taglines using AI - with full authentication, team collaboration, and database persistence!
 
 ## ✨ Features
 
-- 🎯 **AI Logo Generation** - Unique logos powered by Stable Diffusion XL
-- 🎨 **Smart Color Palettes** - Industry-optimized 5-color schemes
-- 📝 **Typography Pairing** - Professional Google Fonts combinations
-- 💬 **AI Taglines** - Compelling brand messaging
-- 📦 **Downloadable Kit** - ZIP file with all assets + HTML preview
-- 🚀 **Production-Ready** - TypeScript, ESLint, Prettier, strict mode
+### Brand Generation
+- 🎯 **AI SVG Logo Generation** - Scalable vector logos powered by Claude Sonnet 4 & Grok Code Fast
+- 🎨 **Smart Color Palettes** - Psychology-based color theory with 2025 trends
+- 📝 **Typography Pairing** - 50+ professionally curated Google Fonts combinations
+- 💬 **AI Taglines** - Compelling brand messaging with Groq
+- 🎭 **Design Justifications** - AI-powered explanations for all design choices
+- 📦 **Multi-Business Support** - Create unlimited brand kits for different businesses
+
+### Team Collaboration
+- 👥 **Business Teams** - Invite team members with role-based access (Admin, Editor, Viewer)
+- 🔐 **Secure Sharing** - Share brand kits via secure tokens with expiration
+- ✉️ **Email Invitations** - Invite collaborators via email
+- 🎫 **Access Requests** - Request access to businesses you don't own
+
+### Authentication & Data
+- 🔒 **Supabase Auth** - Email/password authentication with Row Level Security
+- 💾 **Database Persistence** - All brand kits saved to PostgreSQL
+- 👤 **User Accounts** - Create personal or business accounts
+- 📊 **Dashboard** - View and manage all your brand kits
+
+### Production-Ready
+- 🚀 **TypeScript** - Strict mode, zero any types
+- ✅ **Type-Safe** - Zod validation on all inputs
 - ♿ **Accessible** - WCAG 2.1 AA compliant
 - 📱 **Responsive** - Mobile-first design
-- ✅ **Tested** - 33 tests covering critical paths
-- 🔍 **Error Tracking** - Sentry integration for monitoring
-- 🛡️ **Rate Limited** - Upstash Redis protection (10 req/min)
+- 🛡️ **Secure** - RLS policies, input sanitization, API key protection
+- 📝 **Production Standards** - Follows enterprise-grade code standards
 
 ## 🚀 Quick Start
 
@@ -28,7 +45,8 @@ Generate complete brand identity packages including logos, color palettes, typog
 
 - Node.js 18+ or 20+
 - npm 9+
-- Hugging Face API key (free tier available)
+- Supabase account (free tier available)
+- OpenRouter API key (for SVG logo generation)
 
 ### Installation
 
@@ -45,29 +63,56 @@ cd brandkit_generator
 npm install
 ```
 
-3. **Set up environment variables**
+3. **Set up Supabase**
 
-Create a `.env.local` file in the root directory:
+a. Create a new project at [supabase.com](https://supabase.com)
+
+b. Get your credentials from Settings → API:
+   - Project URL
+   - `anon` key (safe for client-side)
+   - `service_role` key (server-only, keep secret!)
+
+c. Run the database schema:
+
+```bash
+# Option 1: Copy the schema from supabase-schema.sql and paste into SQL Editor
+# Option 2: Use Supabase CLI
+supabase login
+supabase link --project-ref your-project-id
+supabase db push
+```
+
+d. Enable Email Auth:
+   - Go to Authentication → Providers
+   - Enable "Email" provider
+   - Configure email templates (optional)
+
+4. **Set up environment variables**
 
 ```bash
 cp .env.example .env.local
 ```
 
-Edit `.env.local` and add your API keys:
+Edit `.env.local` with your credentials:
 
 ```env
-# Required
-HUGGINGFACE_API_KEY=your_huggingface_api_key_here
+# Supabase (REQUIRED)
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+SUPABASE_SERVICE_KEY=your-service-role-key-here
 
-# Optional (for better tagline generation)
-OPENAI_API_KEY=your_openai_api_key_here
+# OpenRouter (REQUIRED for SVG logo generation)
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+
+# Groq (OPTIONAL but recommended for AI features)
+GROQ_API_KEY=your-groq-api-key-here
 
 # App Configuration
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME="Brand Kit Generator"
+NEXT_PUBLIC_APP_NAME=Brand Kit Generator
 ```
 
-4. **Run development server**
+5. **Run development server**
 
 ```bash
 npm run dev
@@ -77,23 +122,32 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔑 Getting API Keys
 
-### Hugging Face (Required)
+### Supabase (Required)
 
-1. Create account at [huggingface.co](https://huggingface.co)
-2. Go to [Settings → Access Tokens](https://huggingface.co/settings/tokens)
-3. Create a new token with `read` access
-4. Copy token to `.env.local`
+1. Create account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Go to Settings → API
+4. Copy the URL, anon key, and service_role key
+5. **Security**: NEVER expose the service_role key in client code!
 
-**Free Tier**: ~30,000 requests/month
+**Free Tier**: 500 MB database, 50,000 monthly active users
 
-### OpenAI (Optional)
+### OpenRouter (Required)
 
-1. Create account at [platform.openai.com](https://platform.openai.com)
-2. Go to [API Keys](https://platform.openai.com/api-keys)
-3. Create a new secret key
-4. Copy to `.env.local`
+1. Create account at [openrouter.ai](https://openrouter.ai)
+2. Go to [Keys](https://openrouter.ai/keys)
+3. Create a new API key
+4. Add credits to your account (pay-as-you-go)
 
-**Note**: OpenAI is optional. The app will use Hugging Face for taglines if OpenAI key is not provided.
+**Cost**: ~$0.01-0.05 per logo generation
+
+### Groq (Optional but Recommended)
+
+1. Create account at [console.groq.com](https://console.groq.com)
+2. Go to API Keys
+3. Create a new key
+
+**Free Tier**: Fast inference with llama-3.1-8b-instant
 
 ## 📂 Project Structure
 
@@ -101,56 +155,100 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 brandkit_generator/
 ├── app/                      # Next.js App Router
 │   ├── api/                 # API routes
-│   │   └── generate-brand-kit/
+│   │   ├── auth/            # Authentication endpoints
+│   │   ├── brand-kits/      # Brand kit CRUD
+│   │   ├── businesses/      # Business management
+│   │   ├── invitations/     # Team invitations
+│   │   └── generate-brand-kit/ # AI generation
+│   ├── dashboard/           # User dashboard
+│   ├── sign-in/             # Sign in page
+│   ├── sign-up/             # Sign up page
+│   ├── brand-kit/[id]/      # Brand kit view page
+│   ├── tools/brand-kit/     # Brand kit generator
 │   ├── privacy/             # Privacy policy
 │   ├── terms/               # Terms of service
-│   ├── results/             # Results display page
 │   ├── layout.tsx           # Root layout
-│   ├── page.tsx             # Homepage
-│   └── globals.css          # Global styles
+│   └── page.tsx             # Homepage
 ├── components/              # React components
-│   └── ui/                  # shadcn/ui components
+│   ├── ui/                  # shadcn/ui components
+│   ├── business-card.tsx    # Business card component
+│   ├── create-business-dialog.tsx
+│   ├── progressive-generation.tsx
+│   └── ...
 ├── lib/                     # Utilities and services
 │   ├── api/                 # API service clients
 │   │   ├── colors.ts        # Color palette generation
-│   │   ├── fonts.ts         # Font pairing
-│   │   ├── huggingface.ts   # HuggingFace API
+│   │   ├── fonts.ts         # Font pairing (50+ fonts)
+│   │   ├── groq.ts          # Groq AI client
+│   │   ├── svg-logo.ts      # SVG logo generation
 │   │   └── taglines.ts      # Tagline generation
+│   ├── services/            # Business logic layer
+│   │   ├── brand-kit-service.ts
+│   │   └── business-service.ts
+│   ├── supabase/            # Supabase clients
+│   │   ├── client.ts        # Browser client
+│   │   └── server.ts        # Server client
+│   ├── validations/         # Zod schemas
+│   │   ├── brand-kit.ts
+│   │   └── business.ts
 │   ├── env.ts               # Environment validation
-│   ├── utils.ts             # Utility functions
-│   └── validations.ts       # Zod schemas
+│   └── utils.ts             # Utility functions
 ├── types/                   # TypeScript types
+│   └── index.ts             # Global type definitions
+├── config/                  # Configuration files
+│   └── templates.ts         # Business templates
 ├── public/                  # Static assets
-├── docs/                    # Documentation
-│   ├── design/              # Feature designs
-│   └── testing/             # Test plans
-├── claude.md                # Production standards guide
-├── MVP_PLAN.md              # MVP roadmap
+├── supabase/                # Supabase files
+│   └── migrations/          # Database migrations
+├── CLAUDE.md                # Production standards guide
+├── supabase-schema.sql      # Database schema
 ├── README.md                # This file
 └── package.json             # Dependencies
 ```
 
-## 🧪 Testing
+## 🗄️ Database Schema
 
-```bash
-# Type checking
-npm run type-check
+The app uses Supabase (PostgreSQL) with the following tables:
 
-# Linting
-npm run lint
-npm run lint:fix
+- **`auth.users`** - User authentication (managed by Supabase)
+- **`businesses`** - Business entities (1 user → many businesses)
+- **`brand_kits`** - Generated brand kits (1 business → 1 brand kit)
+- **`business_members`** - Team members with roles (admin, editor, viewer)
+- **`business_invitations`** - Email invitations with tokens
+- **`business_access_requests`** - Access requests from non-members
+- **`share_tokens`** - Public share links for brand kits
 
-# Formatting
-npm run format
-npm run format:check
+All tables have **Row Level Security (RLS)** policies to ensure users can only access their own data.
 
-# Unit tests
-npm test
-npm run test:coverage
+## 🔒 Security Architecture
 
-# E2E tests
-npm run e2e
-npm run e2e:ui
+### Three Levels of Supabase Clients
+
+1. **Browser Client** (`createClient()`)
+   - Uses anon key
+   - Respects RLS policies
+   - Used in client components
+
+2. **Server Client** (`createClient()` from server.ts)
+   - Uses anon key with user session
+   - Respects RLS policies
+   - Used in API routes with user context
+
+3. **Admin Client** (`createAdminClient()`)
+   - Uses service_role key
+   - Bypasses ALL RLS policies
+   - Use only for public share links and admin operations
+   - **CRITICAL**: Never use in client code!
+
+### RLS Policies
+
+All database queries are protected by Row Level Security:
+
+```sql
+-- Example: Users can only view their own businesses
+CREATE POLICY "Users can view own businesses"
+  ON businesses FOR SELECT
+  USING (auth.uid() = user_id);
 ```
 
 ## 📊 Available Scripts
@@ -165,99 +263,110 @@ npm run e2e:ui
 | `npm run format` | Format with Prettier |
 | `npm run format:check` | Check formatting |
 | `npm run type-check` | TypeScript type checking |
-| `npm test` | Run unit tests |
-| `npm run test:coverage` | Test with coverage |
-| `npm run e2e` | Run E2E tests |
 
 ## 🚢 Deployment
 
 ### Vercel (Recommended)
 
-1. **Install Vercel CLI**
+1. **Connect GitHub Repository**
 
-```bash
-npm i -g vercel
-```
+   - Go to [vercel.com](https://vercel.com)
+   - Import your repository
+   - Vercel auto-detects Next.js settings
 
-2. **Deploy**
+2. **Add Environment Variables**
 
-```bash
-vercel
-```
+   Go to Project Settings → Environment Variables:
 
-3. **Add environment variables in Vercel dashboard**
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_SERVICE_KEY=your-service-key
+   OPENROUTER_API_KEY=your-openrouter-key
+   GROQ_API_KEY=your-groq-key
+   NEXT_PUBLIC_APP_URL=https://yourdomain.com
+   ```
 
-Go to Project Settings → Environment Variables and add:
-- `HUGGINGFACE_API_KEY`
-- `OPENAI_API_KEY` (optional)
-- `NEXT_PUBLIC_APP_URL` (your production URL)
+3. **Deploy**
 
-4. **Redeploy**
+   Vercel will automatically build and deploy on every push to main.
 
-```bash
-vercel --prod
-```
+### Railway / Render
 
-### Other Platforms
-
-The app can be deployed to any platform that supports Next.js:
-
-- **Netlify**: `npm run build` → Deploy `.next` folder
-- **Railway**: Connect GitHub repo → Auto-deploy
-- **AWS Amplify**: Connect repo → Build: `npm run build`
-- **Docker**: See `Dockerfile` (if you create one)
-
-## 🔒 Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `HUGGINGFACE_API_KEY` | ✅ Yes | Hugging Face API key for AI generation |
-| `OPENAI_API_KEY` | ❌ No | OpenAI key for better taglines (optional) |
-| `NEXT_PUBLIC_APP_URL` | ✅ Yes | Your app URL (for SEO/OG tags) |
-| `NEXT_PUBLIC_APP_NAME` | ❌ No | App name (default: "Brand Kit Generator") |
-
-## 🎯 How It Works
-
-1. **User Input**: Business name, description, industry
-2. **AI Processing**:
-   - Logo: Stable Diffusion XL via Hugging Face
-   - Colors: Algorithmic generation based on industry
-   - Fonts: Curated Google Fonts pairings
-   - Tagline: AI text generation (Hugging Face or OpenAI)
-3. **Results**: Display all assets with preview
-4. **Download**: ZIP file with logo, info text, and HTML preview
+1. Connect repository
+2. Add environment variables
+3. Set build command: `npm run build`
+4. Set start command: `npm run start`
 
 ## 🛠 Tech Stack
 
 - **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript (strict mode)
+- **Language**: TypeScript (strict mode, zero any types)
+- **Database**: Supabase (PostgreSQL with RLS)
+- **Authentication**: Supabase Auth
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Validation**: Zod
-- **Forms**: React Hook Form
-- **AI**: Hugging Face Inference API
-- **Fonts**: Google Fonts
+- **AI Models**:
+  - Claude Sonnet 4 (SVG logo generation via OpenRouter)
+  - Grok Code Fast (SVG validation via OpenRouter)
+  - Llama 3.1 70B (Groq - brand analysis)
+- **Fonts**: Google Fonts (50+ curated fonts)
 - **Icons**: Lucide React
 - **Notifications**: Sonner (toast)
-- **Download**: JSZip
-- **Testing**: Vitest + Playwright
-- **Linting**: ESLint + Prettier
+- **State Management**: React hooks + Supabase real-time (future)
 
-## 🤝 Contributing
+## 🎯 How It Works
 
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/amazing-feature`
-3. Follow the [Production Standards](./claude.md)
-4. Commit your changes: `git commit -m 'feat: add amazing feature'`
-5. Push to the branch: `git push origin feature/amazing-feature`
-6. Open a Pull Request
+### Brand Kit Generation Flow
 
-## 📄 License
+1. **User Input**
+   - Select or create a business
+   - Enter business description
+   - Choose industry
+   - Configure logo/color/font options
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+2. **AI Processing**
+   - **Logo**: Claude Sonnet 4 generates SVG code → Grok Code Fast validates → Rendered SVG
+   - **Colors**: Algorithm + AI mood analysis → 5-color psychology-based palette
+   - **Fonts**: AI personality matching → Google Fonts pairing from 50+ curated fonts
+   - **Tagline**: Groq Llama 3.1 → Industry-specific messaging
+   - **Justifications**: AI explains color/font/design choices
+
+3. **Database Storage**
+   - Brand kit saved to Supabase with foreign key to business
+   - Automatic timestamps and view tracking
+   - Row Level Security ensures only owner can access
+
+4. **Results**
+   - Interactive preview with live color/font switching
+   - Shareable link with secure token
+   - Export options (future: ZIP download)
+
+### Team Collaboration Flow
+
+1. **Business Owner** creates a business
+2. **Owner** invites team members via email
+3. **Invited User** receives email with token link
+4. **Invited User** accepts invitation
+5. **Team Member** gets role-based access (admin/editor/viewer)
+6. **All Members** can view and collaborate on brand kits
+
+## 📝 Production Standards
+
+This project follows enterprise-grade production standards defined in [CLAUDE.md](./CLAUDE.md):
+
+- ✅ **Type Safety**: Zero `any` types, explicit return types on all functions
+- ✅ **Validation**: Zod schemas on all inputs (client + server)
+- ✅ **Error Handling**: Proper error types, user-friendly messages
+- ✅ **Security**: RLS policies, input sanitization, API key protection
+- ✅ **Accessibility**: WCAG 2.1 AA compliance (aria labels, keyboard nav, contrast)
+- ✅ **Performance**: Optimistic UI, loading states, error boundaries
+- ✅ **Documentation**: JSDoc on all public functions
+- ✅ **Code Quality**: ESLint, Prettier, strict TypeScript
 
 ## ⚠️ Disclaimer
 
-**AI-Generated Content**: All assets (logos, taglines) are created by AI and should be reviewed before commercial use. Always:
+**AI-Generated Content**: All assets (logos, taglines, color palettes) are created by AI and should be reviewed before commercial use. Always:
 
 - Check for trademark conflicts
 - Verify compliance with industry regulations
@@ -266,31 +375,43 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 We make no guarantees about uniqueness or originality of AI-generated content.
 
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Follow the [Production Standards](./CLAUDE.md)
+4. Commit your changes: `git commit -m 'feat: add amazing feature'`
+5. Push to the branch: `git push origin feature/amazing-feature`
+6. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
 ## 🙏 Acknowledgments
 
-- [Hugging Face](https://huggingface.co) - AI model hosting
+- [Supabase](https://supabase.com) - Database, auth, and hosting
+- [OpenRouter](https://openrouter.ai) - Multi-model AI API gateway
+- [Groq](https://groq.com) - Fast LLM inference
 - [Google Fonts](https://fonts.google.com) - Open-source fonts
 - [shadcn/ui](https://ui.shadcn.com) - UI components
 - [Vercel](https://vercel.com) - Deployment platform
 
-## 📧 Contact
-
-- Website: [brandkitgenerator.com](https://brandkitgenerator.com)
-- Issues: [GitHub Issues](https://github.com/yourusername/brandkit-generator/issues)
-- Email: support@brandkitgenerator.com
-
 ## 🗺 Roadmap
 
-- [ ] User authentication (save brand kits)
-- [ ] Multiple logo variations
+- [x] User authentication with Supabase
+- [x] Multi-business support
+- [x] Team collaboration (invitations, roles, access requests)
+- [x] Secure brand kit sharing
+- [x] SVG logo generation
+- [ ] ZIP export with all assets
+- [ ] PDF brand guidelines generator
+- [ ] Real-time collaboration
+- [ ] Version history for brand kits
 - [ ] Social media templates
-- [ ] PDF export
-- [ ] Brand guideline PDF generator
-- [ ] Color palette customization
-- [ ] More font options
-- [ ] Vector (SVG) logo output
 - [ ] API access for developers
+- [ ] White-label solution for agencies
 
 ---
 
-**Made with ❤️ using Claude Code** - [Production Standards Guide](./claude.md)
+**Made with ❤️ using Claude Code** | [Production Standards](./CLAUDE.md) | [Database Schema](./supabase-schema.sql)

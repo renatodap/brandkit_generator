@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/supabase/server';
 import { getBusinessById, updateBusiness, deleteBusiness } from '@/lib/services/business-service';
 
@@ -20,7 +21,7 @@ import { updateBusinessSchema } from '@/lib/validations/business';
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   try {
     // Require authentication
     const user = await requireUser();
@@ -39,10 +40,16 @@ export async function GET(
     }
 
     return NextResponse.json(business, { status: 200 });
-  } catch (error) {
-    console.error('Failed to fetch business:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+    logger.error('Failed to fetch business', error as Error);
     return NextResponse.json(
-      { error: 'Failed to fetch business' },
+      { error: 'Failed to load business. Please try again.' },
       { status: 500 }
     );
   }
@@ -55,7 +62,7 @@ export async function GET(
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   try {
     // Require authentication
     const user = await requireUser();
@@ -78,7 +85,14 @@ export async function PATCH(
     }
 
     return NextResponse.json(business, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.flatten().fieldErrors },
@@ -93,9 +107,9 @@ export async function PATCH(
       );
     }
 
-    console.error('Failed to update business:', error);
+    logger.error('Failed to update business', error as Error);
     return NextResponse.json(
-      { error: 'Failed to update business' },
+      { error: 'Failed to update business. Please try again.' },
       { status: 500 }
     );
   }
@@ -108,7 +122,7 @@ export async function PATCH(
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-) {
+): Promise<NextResponse> {
   try {
     // Require authentication
     const user = await requireUser();
@@ -130,10 +144,16 @@ export async function DELETE(
       { success: true, message: 'Business deleted successfully' },
       { status: 200 }
     );
-  } catch (error) {
-    console.error('Failed to delete business:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+    logger.error('Failed to delete business', error as Error);
     return NextResponse.json(
-      { error: 'Failed to delete business' },
+      { error: 'Failed to delete business. Please try again.' },
       { status: 500 }
     );
   }

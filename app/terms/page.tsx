@@ -229,8 +229,10 @@ export default function TermsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              These Terms shall be governed by and construed in accordance with the laws of [Your
-              Jurisdiction], without regard to its conflict of law provisions.
+              These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction - To Be Added], without regard to its conflict of law provisions.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Common jurisdictions: Delaware (USA), England and Wales (UK), or your local jurisdiction.
             </p>
           </CardContent>
         </Card>
@@ -255,10 +257,17 @@ export default function TermsPage() {
             <p className="text-muted-foreground">
               For questions about these Terms, please contact us at:
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground font-mono text-sm">
               Email: legal@brandkitgenerator.com
               <br />
-              Address: [Your Address]
+              Mailing Address: Brand Kit Generator
+              <br />
+              [Company Address - To Be Added]
+              <br />
+              [City, State ZIP Code]
+            </p>
+            <p className="text-xs text-muted-foreground mt-4">
+              Note: Please update contact information and jurisdiction before deploying to production.
             </p>
           </CardContent>
         </Card>

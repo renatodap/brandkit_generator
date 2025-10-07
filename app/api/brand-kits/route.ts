@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { requireUser } from '@/lib/supabase/server';
 import { createBrandKit, getBrandKits } from '@/lib/services/brand-kit-service';
 import { createBrandKitSchema, listBrandKitsQuerySchema } from '@/lib/validations/brand-kit';
@@ -6,7 +7,7 @@ import { createBrandKitSchema, listBrandKitsQuerySchema } from '@/lib/validation
 // Force dynamic rendering - this route uses cookies for authentication
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await requireUser();
     const body = await request.json();
@@ -15,19 +16,28 @@ export async function POST(request: NextRequest) {
     const brandKit = await createBrandKit(user.id, validated);
 
     return NextResponse.json(brandKit, { status: 201 });
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    if (error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    if (error && typeof error === 'object' && 'name' in error && error.name === 'ZodError') {
+      return NextResponse.json(
+        {
+          error: 'Validation error',
+          details: 'errors' in error ? error.errors : undefined,
+        },
+        { status: 400 }
+      );
     }
-    console.error('Error creating brand kit:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('Error creating brand kit', error as Error);
+    return NextResponse.json(
+      { error: 'Failed to create brand kit. Please try again.' },
+      { status: 500 }
+    );
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const user = await requireUser();
     const { searchParams } = new URL(request.url);
@@ -42,11 +52,14 @@ export async function GET(request: NextRequest) {
 
     const result = await getBrandKits(user.id, query);
     return NextResponse.json(result);
-  } catch (error: any) {
-    if (error.message === 'Unauthorized') {
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('Error fetching brand kits:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    logger.error('Error fetching brand kits', error as Error);
+    return NextResponse.json(
+      { error: 'Failed to fetch brand kits. Please try again.' },
+      { status: 500 }
+    );
   }
 }

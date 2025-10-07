@@ -3,13 +3,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { createClient } from '@/lib/supabase/server';
 import { canManageTeam, revokeInvitation } from '@/lib/services/team-service';
 
+/**
+ * DELETE /api/businesses/[id]/invitations/[invitationId]
+ * Revoke an invitation (owner/admin only)
+ */
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string; invitationId: string } }
-) {
+): Promise<NextResponse> {
   try {
     const supabase = await createClient();
 
@@ -20,7 +25,10 @@ export async function DELETE(
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
     }
 
     const businessId = params.id;
@@ -40,14 +48,11 @@ export async function DELETE(
     await revokeInvitation(invitationId);
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Failed to revoke invitation:', error);
+  } catch (error: unknown) {
+    logger.error('Failed to revoke invitation', error as Error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error
-            ? error.message
-            : 'Failed to revoke invitation',
+        error: 'Failed to revoke invitation. Please try again.',
       },
       { status: 500 }
     );

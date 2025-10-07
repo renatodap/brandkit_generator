@@ -3,6 +3,8 @@
  * Multi-model LLM client for advanced SVG logo generation workflow
  */
 
+import { logger } from '@/lib/logger';
+
 /**
  * OpenRouter model identifiers
  * All IDs verified on OpenRouter platform as of Oct 2025
@@ -314,7 +316,7 @@ Return ONLY the improved SVG code.`;
   const svgMatch = response.match(/<svg[\s\S]*<\/svg>/i);
   if (!svgMatch || !svgMatch[0]) {
     // If refinement fails, return original
-    console.warn(`SVG refinement iteration ${iteration} failed, using previous version`);
+    logger.warn(`SVG refinement iteration ${iteration} failed, using previous version`);
     return svgCode;
   }
 
@@ -368,7 +370,7 @@ Provide your score and feedback.`;
 
     return { score, feedback };
   } catch (error) {
-    console.warn('Multi-model review failed:', error);
+    logger.warn('Multi-model review failed', { error });
     return { score: 7.0, feedback: 'Review unavailable' };
   }
 }
@@ -404,7 +406,7 @@ export async function generateLogoWithWorkflow(params: {
 }> {
   const { businessName, description, industry, symbols, colorPalette } = params;
 
-  console.log('🎨 Stage 1: Generating logo template...');
+  logger.info('Stage 1: Generating logo template');
   const template = await generateLogoTemplate({
     businessName,
     description,
@@ -412,10 +414,10 @@ export async function generateLogoWithWorkflow(params: {
     symbols,
   });
 
-  console.log('💻 Stage 2: Generating SVG code...');
+  logger.info('Stage 2: Generating SVG code');
   let svgCode = await generateSVGCode(template, colorPalette);
 
-  console.log('🔍 Stage 3: Refining SVG (2 iterations)...');
+  logger.info('Stage 3: Refining SVG (2 iterations)');
   const originalPrompt = `${businessName} - ${description} - ${symbols.primary} with ${symbols.secondary}`;
 
   // Refinement iteration 1
@@ -424,10 +426,10 @@ export async function generateLogoWithWorkflow(params: {
   // Refinement iteration 2
   svgCode = await refineSVGCode(svgCode, originalPrompt, 2);
 
-  console.log('✅ Stage 4: Multi-model review...');
+  logger.info('Stage 4: Multi-model review');
   const quality = await multiModelReview(svgCode, businessName);
 
-  console.log(`📊 Quality score: ${quality.score}/10`);
+  logger.info('Quality score received', { score: quality.score, maxScore: 10 });
 
   return {
     svgCode,

@@ -8,6 +8,7 @@
  */
 
 import { createClient, createAdminClient } from '../supabase/server';
+import { logger } from '@/lib/logger';
 import type { CreateBrandKitInput, UpdateBrandKitInput, ListBrandKitsQuery } from '../validations/brand-kit';
 
 // ============================================
@@ -87,7 +88,7 @@ export async function createBusiness(
     .single();
 
   if (error) {
-    console.error('Error creating business:', error);
+    logger.error('Error creating business', error as Error, { userId, businessData: data });
     throw new Error(`Failed to create business: ${error.message}`);
   }
 
@@ -103,7 +104,7 @@ export async function createBusiness(
       });
 
     if (memberError) {
-      console.error('Error adding business owner:', memberError);
+      logger.error('Error adding business owner', memberError as Error, { userId, businessId: business.id });
       // Rollback business creation?
       throw new Error(`Failed to add business owner: ${memberError.message}`);
     }
@@ -128,7 +129,7 @@ export async function getUserBusinesses(userId: string) {
     .order('created_at', { ascending: false });
 
   if (ownedError) {
-    console.error('Error fetching owned businesses:', ownedError);
+    logger.error('Error fetching owned businesses', ownedError as Error, { userId });
     throw new Error(`Failed to fetch owned businesses: ${ownedError.message}`);
   }
 
@@ -144,7 +145,7 @@ export async function getUserBusinesses(userId: string) {
     .eq('status', 'active');
 
   if (memberError) {
-    console.error('Error fetching member businesses:', memberError);
+    logger.error('Error fetching member businesses', memberError as Error, { userId });
     throw new Error(`Failed to fetch member businesses: ${memberError.message}`);
   }
 
@@ -181,7 +182,7 @@ export async function getBusinessById(businessId: string, userId: string) {
 
   if (error) {
     if (error.code === 'PGRST116') return null;
-    console.error('Error fetching business:', error);
+    logger.error('Error fetching business', error as Error, { userId, businessId });
     throw new Error(`Failed to fetch business: ${error.message}`);
   }
 
@@ -266,7 +267,7 @@ export async function createBrandKit(context: BrandKitContext, data: CreateBrand
     .single();
 
   if (error) {
-    console.error('Error creating brand kit:', error);
+    logger.error('Error creating brand kit', error as Error, { userId: context.userId, businessId: context.businessId });
     throw new Error(`Failed to create brand kit: ${error.message}`);
   }
 
@@ -314,7 +315,7 @@ export async function getBrandKits(
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('Error fetching brand kits:', error);
+    logger.error('Error fetching brand kits', error as Error, { userId, query });
     throw new Error(`Failed to fetch brand kits: ${error.message}`);
   }
 
@@ -354,7 +355,7 @@ export async function getBusinessBrandKits(businessId: string, userId: string, q
   const { data, error, count } = await queryBuilder;
 
   if (error) {
-    console.error('Error fetching business brand kits:', error);
+    logger.error('Error fetching business brand kits', error as Error, { userId, businessId, query });
     throw new Error(`Failed to fetch business brand kits: ${error.message}`);
   }
 
@@ -381,7 +382,7 @@ export async function getBrandKitById(brandKitId: string, userId: string) {
 
   if (error) {
     if (error.code === 'PGRST116') return null;
-    console.error('Error fetching brand kit:', error);
+    logger.error('Error fetching brand kit', error as Error, { userId, brandKitId });
     throw new Error(`Failed to fetch brand kit: ${error.message}`);
   }
 
@@ -426,7 +427,7 @@ export async function updateBrandKit(brandKitId: string, userId: string, data: U
     .single();
 
   if (error) {
-    console.error('Error updating brand kit:', error);
+    logger.error('Error updating brand kit', error as Error, { userId, brandKitId, data });
     throw new Error(`Failed to update brand kit: ${error.message}`);
   }
 
@@ -448,7 +449,7 @@ export async function deleteBrandKit(brandKitId: string, userId: string) {
     .eq('id', brandKitId);
 
   if (error) {
-    console.error('Error deleting brand kit:', error);
+    logger.error('Error deleting brand kit', error as Error, { userId, brandKitId });
     throw new Error(`Failed to delete brand kit: ${error.message}`);
   }
 
@@ -489,7 +490,7 @@ export async function createShareToken(brandKitId: string, userId: string, expir
     .single();
 
   if (error) {
-    console.error('Error creating share token:', error);
+    logger.error('Error creating share token', error as Error, { userId, brandKitId });
     throw new Error(`Failed to create share token: ${error.message}`);
   }
 

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import Image from 'next/image';
 import { Download, ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { BrandKit } from '@/types';
 import { getTextColor, formatFileName } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function BrandKitResultsPage() {
   const router = useRouter();
@@ -23,29 +25,7 @@ export default function BrandKitResultsPage() {
   const [copiedColor, setCopiedColor] = useState<string | null>(null);
   const [regeneratingComponent, setRegeneratingComponent] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Try to load from localStorage first (for newly generated kits)
-    const stored = localStorage.getItem('brandKit');
-    if (stored) {
-      try {
-        const parsed: BrandKit = JSON.parse(stored);
-        setBrandKit(parsed);
-        return;
-      } catch (error) {
-        console.error('Failed to parse stored brand kit:', error);
-      }
-    }
-
-    // If not in localStorage and we have a valid ID, fetch from API
-    if (brandKitId && brandKitId !== 'new') {
-      fetchBrandKit(brandKitId);
-    } else {
-      // Redirect to tool page if no brand kit data available
-      router.push(`/dashboard/${companySlug}/tools/brand-kit`);
-    }
-  }, [brandKitId, companySlug, router]);
-
-  const fetchBrandKit = async (id: string) => {
+  const fetchBrandKit = useCallback(async (id: string) => {
     try {
       const response = await fetch(`/api/brand-kits/${id}`);
 
@@ -77,11 +57,33 @@ export default function BrandKitResultsPage() {
 
       setBrandKit(transformedBrandKit);
     } catch (error) {
-      console.error('Error fetching brand kit:', error);
+      logger.error('Error fetching brand kit', error as Error);
       toast.error('Failed to load brand kit');
       router.push(`/dashboard/${companySlug}/tools/brand-kit`);
     }
-  };
+  }, [router, companySlug]);
+
+  useEffect(() => {
+    // Try to load from localStorage first (for newly generated kits)
+    const stored = localStorage.getItem('brandKit');
+    if (stored) {
+      try {
+        const parsed: BrandKit = JSON.parse(stored);
+        setBrandKit(parsed);
+        return;
+      } catch (error) {
+        logger.error('Failed to parse stored brand kit', error as Error);
+      }
+    }
+
+    // If not in localStorage and we have a valid ID, fetch from API
+    if (brandKitId && brandKitId !== 'new') {
+      fetchBrandKit(brandKitId);
+    } else {
+      // Redirect to tool page if no brand kit data available
+      router.push(`/dashboard/${companySlug}/tools/brand-kit`);
+    }
+  }, [brandKitId, companySlug, router, fetchBrandKit]);
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
@@ -438,10 +440,13 @@ Powered by AI
             {brandKit.logo?.url ? (
               <>
                 <div className="flex justify-center p-8 bg-muted rounded-lg" data-testid="logo-preview">
-                  <img
+                  <Image
                     src={brandKit.logo.url}
                     alt={`${brandKit.businessName} logo`}
+                    width={800}
+                    height={800}
                     className="max-w-md w-full h-auto"
+                    unoptimized
                   />
                 </div>
                 {brandKit.justifications?.logo && (

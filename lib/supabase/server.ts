@@ -9,6 +9,7 @@
 
 import { cookies } from 'next/headers';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { logger } from '@/lib/logger';
 
 export async function createClient() {
   const cookieStore = cookies();
@@ -18,21 +19,23 @@ export async function createClient() {
     process.env['NEXT_PUBLIC_SUPABASE_ANON_KEY']!,
     {
       cookies: {
-        get(name: string) {
+        get(name: string): string | undefined {
           return cookieStore.get(name)?.value;
         },
-        set(name: string, value: string, options: CookieOptions) {
+        set(name: string, value: string, options: CookieOptions): void {
           try {
             cookieStore.set({ name, value, ...options });
           } catch (error) {
-            // Handle cookie setting errors (e.g., in middleware)
+            // Cookie setting can fail in middleware or read-only contexts
+            logger.error('Failed to set Supabase cookie', error as Error, { cookieName: name });
           }
         },
-        remove(name: string, options: CookieOptions) {
+        remove(name: string, options: CookieOptions): void {
           try {
             cookieStore.set({ name, value: '', ...options });
           } catch (error) {
-            // Handle cookie removal errors
+            // Cookie removal can fail in middleware or read-only contexts
+            console.error('[Supabase] Failed to remove cookie:', name, error);
           }
         },
       },
@@ -42,7 +45,9 @@ export async function createClient() {
 
 /**
  * Admin client for server-side operations that bypass RLS
- * Use with caution!
+ * Use with caution! This client has full database access and bypasses all Row Level Security policies.
+ *
+ * @returns Supabase client with service role permissions
  */
 export function createAdminClient() {
   return createServerClient(
@@ -50,9 +55,9 @@ export function createAdminClient() {
     process.env['SUPABASE_SERVICE_KEY']!,
     {
       cookies: {
-        get() { return undefined; },
-        set() {},
-        remove() {},
+        get(): undefined { return undefined; },
+        set(): void {},
+        remove(): void {},
       },
     }
   );
@@ -66,16 +71,16 @@ export async function getUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error) {
-    console.error('[Auth] Error getting user:', error.message);
+    logger.error('Error getting authenticated user', error as Error);
     return null;
   }
 
   if (!user) {
-    console.log('[Auth] No user found in session');
+    logger.debug('No user found in session');
     return null;
   }
 
-  console.log('[Auth] User found:', user.id, user.email);
+  logger.debug('Authenticated user retrieved', { userId: user.id, email: user.email });
   return user;
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Download, ArrowLeft, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import JSZip from 'jszip';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { BrandKit } from '@/types';
 import { getTextColor, formatFileName } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function ResultsPage() {
   const router = useRouter();
@@ -175,11 +177,11 @@ export default function ResultsPage() {
             }
           }
         } catch (error) {
-          console.error('Failed to add logo to download:', error);
+          logger.error('Failed to add logo to download', error as Error);
           toast.warning('Logo could not be included in the download');
         }
       } else {
-        console.log('No logo to include in download');
+        logger.debug('No logo to include in download');
       }
 
       // Create brand kit info text file
@@ -515,10 +517,13 @@ Powered by OpenRouter (Claude Sonnet 4 & Grok Code Fast) & Google Fonts
             {brandKit.logo?.url ? (
               <>
                 <div className="flex justify-center p-8 bg-muted rounded-lg" data-testid="logo-preview">
-                  <img
+                  <Image
                     src={brandKit.logo.url}
                     alt={`${brandKit.businessName} logo`}
+                    width={800}
+                    height={800}
                     className="max-w-md w-full h-auto"
+                    unoptimized
                   />
                 </div>
                 {brandKit.justifications?.logo && (
