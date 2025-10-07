@@ -65,10 +65,17 @@ export async function getUser() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
-  if (error || !user) {
+  if (error) {
+    console.error('[Auth] Error getting user:', error.message);
     return null;
   }
 
+  if (!user) {
+    console.log('[Auth] No user found in session');
+    return null;
+  }
+
+  console.log('[Auth] User found:', user.id, user.email);
   return user;
 }
 
@@ -79,6 +86,7 @@ export async function requireUser() {
   const user = await getUser();
 
   if (!user) {
+    console.error('[Auth] requireUser() failed - no user in session');
     throw new Error('Unauthorized');
   }
 

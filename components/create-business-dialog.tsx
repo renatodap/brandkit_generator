@@ -128,25 +128,45 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
 
     setIsCreating(true);
     try {
+      console.log('[CreateBusiness] Submitting:', { name: data.name, slug: data.slug });
+
       const response = await fetch('/api/businesses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
+      console.log('[CreateBusiness] Response status:', response.status);
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create business');
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error occurred' }));
+        console.error('[CreateBusiness] API error:', errorData);
+
+        // Handle different error types
+        if (response.status === 401) {
+          toast.error('Your session has expired. Please sign in again.');
+          setTimeout(() => window.location.href = '/sign-in', 2000);
+          return;
+        }
+
+        if (response.status === 409) {
+          toast.error(errorData.error || 'A business with this slug already exists');
+          return;
+        }
+
+        throw new Error(errorData.error || `Server error (${response.status})`);
       }
 
       const business = await response.json();
+      console.log('[CreateBusiness] Success:', business.id);
       toast.success('Business created successfully!');
       onSuccess(business);
       reset();
       onOpenChange(false);
     } catch (error) {
-      console.error('Error creating business:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create business');
+      console.error('[CreateBusiness] Failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create business. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsCreating(false);
     }

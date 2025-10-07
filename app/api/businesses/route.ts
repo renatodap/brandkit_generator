@@ -77,19 +77,29 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    console.log('[API] POST /api/businesses - Starting request');
+
     // Require authentication
     const user = await requireUser();
+    console.log('[API] User authenticated:', user.id);
 
     // Parse and validate request body
     const body = await request.json();
+    console.log('[API] Request body:', { name: body.name, slug: body.slug });
+
     const validated = createBusinessSchema.parse(body);
+    console.log('[API] Validation passed');
 
     // Create business
     const business = await createBusiness(user.id, validated);
+    console.log('[API] Business created:', business.id);
 
     return NextResponse.json(business, { status: 201 });
   } catch (error) {
+    console.error('[API] Error in POST /api/businesses:', error);
+
     if (error instanceof z.ZodError) {
+      console.error('[API] Validation error:', error.flatten().fieldErrors);
       return NextResponse.json(
         { error: 'Invalid input', details: error.flatten().fieldErrors },
         { status: 400 }
@@ -98,6 +108,7 @@ export async function POST(request: NextRequest) {
 
     // Check if it's an authentication error
     if (error instanceof Error && error.message === 'Unauthorized') {
+      console.error('[API] Authentication error - user not found');
       return NextResponse.json(
         { error: 'Authentication required. Please sign in.' },
         { status: 401 }
@@ -105,15 +116,19 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof Error && error.message.includes('already exists')) {
+      console.error('[API] Duplicate slug error');
       return NextResponse.json(
         { error: error.message },
         { status: 409 }
       );
     }
 
-    console.error('Failed to create business:', error);
+    // Return detailed error message for debugging
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[API] Unhandled error:', errorMessage);
+
     return NextResponse.json(
-      { error: 'Failed to create business' },
+      { error: `Failed to create business: ${errorMessage}` },
       { status: 500 }
     );
   }

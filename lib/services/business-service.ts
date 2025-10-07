@@ -47,31 +47,48 @@ async function getUserAccessibleBusinessIds(userId: string): Promise<string[]> {
  * @throws Error if creation fails or slug already exists for user
  */
 export async function createBusiness(userId: string, data: CreateBusinessInput): Promise<Business> {
+  console.log('[BusinessService] Creating business for user:', userId, 'slug:', data.slug);
+
   const supabase = await createClient();
+
+  const insertData = {
+    user_id: userId,
+    name: data.name,
+    slug: data.slug,
+    description: data.description || null,
+    industry: data.industry || null,
+  };
+
+  console.log('[BusinessService] Insert data:', insertData);
 
   const { data: business, error } = await supabase
     .from('businesses')
-    .insert({
-      user_id: userId,
-      name: data.name,
-      slug: data.slug,
-      description: data.description || null,
-      industry: data.industry || null,
-    })
+    .insert(insertData)
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating business:', error);
+    console.error('[BusinessService] Database error:', {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
 
     // Handle unique constraint violation
     if (error.code === '23505') {
       throw new Error('A business with this slug already exists in your account');
     }
 
-    throw new Error(`Failed to create business: ${error.message}`);
+    // Handle RLS policy violations
+    if (error.code === '42501') {
+      throw new Error('Permission denied. Please check your account permissions.');
+    }
+
+    throw new Error(`Database error: ${error.message} (code: ${error.code})`);
   }
 
+  console.log('[BusinessService] Business created successfully:', business.id);
   return business as Business;
 }
 
