@@ -48,32 +48,7 @@ export function BusinessCollectionsDialog({
 
   const [hasApiKey, setHasApiKey] = useState(false);
 
-  // Check if user has API key
-  const checkApiKey = useCallback(async () => {
-    try {
-      const response = await fetch('/api/recall/api-key');
-      const data = await response.json();
-
-      if (data.success && data.data.has_key && data.data.is_valid) {
-        setHasApiKey(true);
-        await Promise.all([fetchAvailableCollections(), fetchLinkedCollections()]);
-      } else {
-        setHasApiKey(false);
-      }
-    } catch (error) {
-      console.error('Failed to check API key:', error);
-      setHasApiKey(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (open) {
-      checkApiKey();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  const fetchAvailableCollections = async () => {
+  const fetchAvailableCollections = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch('/api/recall/collections');
@@ -90,9 +65,9 @@ export function BusinessCollectionsDialog({
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchLinkedCollections = async () => {
+  const fetchLinkedCollections = useCallback(async () => {
     try {
       const response = await fetch(`/api/businesses/${businessId}/collections`);
       const data = await response.json();
@@ -105,7 +80,31 @@ export function BusinessCollectionsDialog({
     } catch (error) {
       console.error('Failed to fetch linked collections:', error);
     }
-  };
+  }, [businessId]);
+
+  // Check if user has API key
+  const checkApiKey = useCallback(async () => {
+    try {
+      const response = await fetch('/api/recall/api-key');
+      const data = await response.json();
+
+      if (data.success && data.data.has_key && data.data.is_valid) {
+        setHasApiKey(true);
+        await Promise.all([fetchAvailableCollections(), fetchLinkedCollections()]);
+      } else {
+        setHasApiKey(false);
+      }
+    } catch (error) {
+      console.error('Failed to check API key:', error);
+      setHasApiKey(false);
+    }
+  }, [fetchAvailableCollections, fetchLinkedCollections]);
+
+  useEffect(() => {
+    if (open) {
+      checkApiKey();
+    }
+  }, [open, checkApiKey]);
 
   const handleLinkCollection = async () => {
     if (!selectedCollectionId) {

@@ -13,7 +13,7 @@ import { refreshCollectionCache } from '@/lib/services/business-collection-servi
  * Manually refresh the knowledge cache for a collection
  */
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string; collectionId: string } }
 ) {
   try {
