@@ -16,7 +16,6 @@ import type {
  * Configuration for recall-notebook API
  */
 const RECALL_API_BASE_URL = 'https://notebook-recall.vercel.app/api';
-const DEFAULT_CACHE_HOURS = 6;
 
 /**
  * Recall-notebook API client
