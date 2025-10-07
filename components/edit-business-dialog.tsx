@@ -128,7 +128,7 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
   const onSubmit = async (data: UpdateBusinessInput) => {
     if (!business) return;
 
-    if (slug && slug !== business.slug && !slugAvailable) {
+    if (slug && slug !== business.slug && slugAvailable === false) {
       toast.error('This slug is already taken. Please choose another.');
       return;
     }
@@ -208,6 +208,9 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
             {!checkingSlug && slug && slug.length < 2 && (
               <p className="text-sm text-amber-600">⚠ Slug must be at least 2 characters</p>
             )}
+            {!checkingSlug && slugAvailable === null && slug && business && slug !== business.slug && slug.length >= 2 && (
+              <p className="text-sm text-muted-foreground">Unable to verify availability (will be checked on submit)</p>
+            )}
             {errors.slug && (
               <p className="text-sm text-destructive">{errors.slug.message}</p>
             )}
@@ -258,7 +261,7 @@ export function EditBusinessDialog({ open, onOpenChange, business, onSuccess }: 
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isUpdating || (slug !== business?.slug && !slugAvailable)}>
+            <Button type="submit" disabled={isUpdating || checkingSlug || (slug !== business?.slug && slugAvailable === false)}>
               {isUpdating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

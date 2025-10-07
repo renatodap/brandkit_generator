@@ -59,6 +59,14 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
   const slug = watch('slug');
   const industry = watch('industry');
 
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSlugAvailable(null);
+      setCheckingSlug(false);
+    }
+  }, [open]);
+
   // Auto-generate slug from name
   useEffect(() => {
     if (name && !slug) {
@@ -113,7 +121,7 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
   }, [slug]);
 
   const onSubmit = async (data: CreateBusinessInput) => {
-    if (!slugAvailable) {
+    if (slugAvailable === false) {
       toast.error('This slug is already taken. Please choose another.');
       return;
     }
@@ -192,7 +200,10 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
               <p className="text-sm text-destructive">✗ Slug is already taken</p>
             )}
             {!checkingSlug && slug && slug.length < 2 && (
-              <p className="text-sm text-amber-600">⚠ Slug must be at least 2 characters. Please enter a valid slug manually.</p>
+              <p className="text-sm text-amber-600">⚠ Slug must be at least 2 characters</p>
+            )}
+            {!checkingSlug && slugAvailable === null && slug && slug.length >= 2 && (
+              <p className="text-sm text-muted-foreground">Unable to verify availability (will be checked on submit)</p>
             )}
             {errors.slug && (
               <p className="text-sm text-destructive">{errors.slug.message}</p>
@@ -243,7 +254,7 @@ export function CreateBusinessDialog({ open, onOpenChange, onSuccess }: CreateBu
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isCreating || checkingSlug || slugAvailable !== true}>
+            <Button type="submit" disabled={isCreating || checkingSlug || slugAvailable === false}>
               {isCreating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
