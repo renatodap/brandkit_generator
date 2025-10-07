@@ -38,6 +38,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available }, { status: 200 });
   } catch (error) {
     console.error('Failed to check slug availability:', error);
+
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Failed to check slug availability' },
       { status: 500 }

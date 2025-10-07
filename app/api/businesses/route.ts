@@ -55,6 +55,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
     console.error('Failed to fetch businesses:', error);
     return NextResponse.json(
       { error: 'Failed to fetch businesses' },
@@ -85,6 +93,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Invalid input', details: error.flatten().fieldErrors },
         { status: 400 }
+      );
+    }
+
+    // Check if it's an authentication error
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
       );
     }
 
