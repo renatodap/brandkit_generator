@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
  * GET /api/recall/api-key
  * Check if user has a valid API key
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const user = await requireUser();
 
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
  * DELETE /api/recall/api-key
  * Delete user's recall-notebook API key
  */
-export async function DELETE(request: NextRequest) {
+export async function DELETE(_request: NextRequest) {
   try {
     const user = await requireUser();
 
