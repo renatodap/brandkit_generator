@@ -59,14 +59,30 @@ export const createShareTokenSchema = z.object({
 
 // Query parameters for listing brand kits
 export const listBrandKitsQuerySchema = z.object({
-  limit: z.coerce.number().int().positive().max(100).default(50),
-  offset: z.coerce.number().int().nonnegative().default(0),
+  limit: z
+    .union([z.string(), z.number(), z.null()])
+    .transform((val) => {
+      if (val === null || val === undefined) return 50;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? 50 : Math.min(Math.max(num, 1), 100);
+    }),
+  offset: z
+    .union([z.string(), z.number(), z.null()])
+    .transform((val) => {
+      if (val === null || val === undefined) return 0;
+      const num = typeof val === 'string' ? parseInt(val, 10) : val;
+      return isNaN(num) ? 0 : Math.max(num, 0);
+    }),
   favoritesOnly: z
-    .enum(['true', 'false'])
+    .union([z.enum(['true', 'false']), z.null()])
     .transform((val) => val === 'true')
     .optional(),
-  sort: z.enum(['created_at', 'updated_at', 'business_name']).default('created_at'),
-  order: z.enum(['asc', 'desc']).default('desc'),
+  sort: z
+    .union([z.enum(['created_at', 'updated_at', 'business_name']), z.null()])
+    .transform((val) => val || 'created_at'),
+  order: z
+    .union([z.enum(['asc', 'desc']), z.null()])
+    .transform((val) => val || 'desc'),
 });
 
 // Type exports
