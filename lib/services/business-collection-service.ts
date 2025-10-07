@@ -8,7 +8,6 @@
 import { createClient } from '@/lib/supabase/server';
 import type {
   BusinessCollection,
-  BusinessKnowledgeCache,
   RecallCollection,
   KnowledgeSearchResult,
 } from '@/types';
